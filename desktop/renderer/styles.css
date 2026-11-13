@@ -16,7 +16,7 @@ body {
   border-bottom: 1px solid #232a36;
 }
 .brand { display: flex; align-items: center; gap: 8px; flex: none; }
-.brand .mark { color: #ff5a36; font-size: 20px; }
+.brand .mark { width: 24px; height: 24px; border-radius: 6px; display: block; flex: none; }
 .brand .name { font-weight: 800; letter-spacing: -0.02em; }
 .brand .tag {
   font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;

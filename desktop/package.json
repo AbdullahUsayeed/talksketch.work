@@ -2,7 +2,7 @@
   "name": "talksketch-desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "TalkSketch desktop — Meet + live AI notes",
+  "description": "AI meeting notes for your desktop",
   "author": "TalkSketch",
   "license": "Apache-2.0",
   "main": "main.js",
@@ -34,7 +34,7 @@
         "nsis",
         "portable"
       ],
-      "icon": "build/icon.png",
+      "icon": "build/icon.ico",
       "signAndEditExecutable": false
     },
     "nsis": {

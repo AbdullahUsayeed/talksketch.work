@@ -264,6 +264,7 @@ function createWindow() {
     minWidth: 1080,
     minHeight: 680,
     backgroundColor: '#0f1115',
+    icon: path.join(__dirname, 'build', 'icon.png'),
     title: 'TalkSketch',
     autoHideMenuBar: true,
     webPreferences: {
