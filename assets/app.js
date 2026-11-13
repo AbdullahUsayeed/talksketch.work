@@ -1,4 +1,4 @@
-﻿const PLAN_ID = "P-6YB06036H1886744ENL3HT5A";
+const PLAN_ID = "P-6YB06036H1886744ENL3HT5A";
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /* year */
@@ -102,7 +102,7 @@ const note = document.getElementById("paypal-note");
 
 function showFallback() {
   if (paypalHost) paypalHost.hidden = true;
-  if (note) note.textContent = "Secure subscription via PayPal Â· 7 days free, then $12/month";
+  if (note) note.textContent = "Secure subscription via PayPal · 7 days free, then $12/month";
   if (fallback) {
     fallback.hidden = false;
     fallback.addEventListener("click", () => {
