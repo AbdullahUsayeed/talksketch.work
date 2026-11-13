@@ -1,4 +1,4 @@
-const { app, BrowserWindow, session, shell, ipcMain, webContents } = require('electron');
+const { app, BrowserWindow, session, shell, ipcMain, webContents, desktopCapturer } = require('electron');
 const http = require('node:http');
 const fs = require('node:fs');
 const { randomUUID } = require('node:crypto');
@@ -262,6 +262,13 @@ function allowMedia(ses) {
   ses.setUserAgent(UA);
 }
 
+function allowSystemAudio(ses) {
+  ses.setDisplayMediaRequestHandler(async (_request, callback) => {
+    const sources = await desktopCapturer.getSources({ types: ['screen'] });
+    callback({ video: sources[0], audio: 'loopback' });
+  });
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1520,
@@ -293,6 +300,7 @@ ipcMain.on('caption', (_event, line) => addCaption(line));
 app.whenReady().then(async () => {
   allowMedia(session.defaultSession);
   allowMedia(session.fromPartition('persist:meet'));
+  allowSystemAudio(session.defaultSession);
   servePanel();
   createWindow();
 

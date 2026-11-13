@@ -227,12 +227,103 @@ function reset() {
   pushState();
 }
 
+let audioMode = false;
+let audioTracks = [];
+let recorders = [];
+
 function stopTimers() {
   capturing = false;
   if (drainTimer) clearInterval(drainTimer);
   if (analyzeTimer) clearInterval(analyzeTimer);
   drainTimer = null;
   analyzeTimer = null;
+}
+
+function toBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+function makeRecorder(stream, speaker) {
+  const recorder = new MediaRecorder(stream, {
+    mimeType: "audio/webm;codecs=opus",
+    audioBitsPerSecond: 32000,
+  });
+  recorder.ondataavailable = (event) => {
+    if (event.data.size > 1200) void transcribe(event.data, speaker);
+  };
+  return recorder;
+}
+
+async function transcribe(blob, speaker) {
+  try {
+    const base64 = toBase64(await blob.arrayBuffer());
+    const headers = { "content-type": "application/json" };
+    if (sessionToken) headers.authorization = `Bearer ${sessionToken}`;
+    const res = await fetch(`${settings.server.replace(/\/$/, "")}/v1/transcribe`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        code: settings.code,
+        audio: base64,
+        mime: blob.type || "audio/webm",
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Server ${res.status}`);
+    const text = String(data.text ?? "").trim();
+    if (text.length < 2) return;
+    transcript.push(`${speaker}: ${text}`);
+    window.talksketch?.line({ speaker, text });
+    captured += 1;
+    $("captured").textContent = `${captured} audio chunks`;
+    setStatus(`Listening · ${speaker}: ${text.slice(0, 70)}`);
+  } catch (error) {
+    setStatus(`Transcription failed: ${error.message}`, true);
+  }
+}
+
+async function startAudio() {
+  const display = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+  const system = display.getAudioTracks()[0];
+  if (!system) {
+    display.getTracks().forEach((track) => track.stop());
+    throw new Error("No system audio track was shared.");
+  }
+  display.getVideoTracks().forEach((track) => {
+    track.enabled = false;
+  });
+  const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
+  audioTracks = [...display.getTracks(), ...mic.getTracks()];
+  recorders = [
+    makeRecorder(new MediaStream([system]), "Meeting"),
+    makeRecorder(mic, "You"),
+  ];
+  recorders.forEach((recorder) => recorder.start(12000));
+}
+
+function stopAudio() {
+  for (const recorder of recorders) {
+    try {
+      recorder.stop();
+    } catch {
+      /* already stopped */
+    }
+  }
+  recorders = [];
+  for (const track of audioTracks) {
+    try {
+      track.stop();
+    } catch {
+      /* already stopped */
+    }
+  }
+  audioTracks = [];
 }
 
 $("start").addEventListener("click", async () => {
@@ -244,33 +335,50 @@ $("start").addEventListener("click", async () => {
   }
   $("start").disabled = true;
   setStatus("Starting…");
+  reset();
+  capturing = true;
+  captured = 0;
+  $("captured").textContent = "0 lines captured";
+  $("stop").hidden = false;
+
   try {
-    const injected = await injectObserver();
-    if (injected === "failed") throw new Error("The Meet page is not ready yet.");
-    reset();
-    capturing = true;
-    captured = 0;
-    $("captured").textContent = "0 lines captured";
-    $("stop").hidden = false;
-    setStatus("Live. Turn on captions (CC) in Meet.");
-    drainTimer = setInterval(drain, 900);
-    analyzeTimer = setInterval(() => analyze(false), 20000);
-    setTimeout(() => analyze(false), 5000);
-    setTimeout(() => {
-      if (capturing && captured === 0) {
-        setStatus("No captions detected — open Paste and add lines manually.", true);
-      }
-    }, 20000);
+    await startAudio();
+    audioMode = true;
+    setStatus("Listening to meeting audio (system + mic).");
   } catch (error) {
-    setStatus(`Could not start: ${error.message}`, true);
-    $("start").disabled = false;
+    audioMode = false;
+    const injected = await injectObserver();
+    if (injected === "failed") {
+      setStatus("Audio and captions are both unavailable. Use Paste.", true);
+      stopTimers();
+      $("stop").hidden = true;
+      $("start").disabled = false;
+      return;
+    }
+    drainTimer = setInterval(drain, 900);
+    setStatus("Audio unavailable; using Meet captions.");
   }
+
+  analyzeTimer = setInterval(() => analyze(false), 20000);
+  setTimeout(() => analyze(false), 5000);
+  setTimeout(() => {
+    if (capturing && captured === 0) {
+      setStatus(
+        audioMode
+          ? "No audio detected — check the meeting output device."
+          : "No captions detected — use Paste or audio.",
+        true,
+      );
+    }
+  }, 25000);
 });
 
 $("stop").addEventListener("click", async () => {
   stopTimers();
+  stopAudio();
   $("stop").hidden = true;
   $("start").disabled = false;
+  await new Promise((resolve) => setTimeout(resolve, 1500));
   await analyze(true);
 });
 
