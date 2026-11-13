@@ -284,14 +284,14 @@
           </div>
           <div class="terminal reveal" data-delay="60" id="selfhost">
             <div class="terminal-bar"><i></i><i></i><i></i><span>talksketch — zsh</span></div>
-            <pre><code><span class="c"># clone and run the whole stack</span>
+            <pre><code><span class="c"># clone and run the backend</span>
 git clone https://github.com/AbdullahUsayeed/talksketch.work
 cd talksketch.work/platform
 cp .env.example .env
 docker compose up -d
 
-<span class="c"># → app      http://localhost:8787</span>
-<span class="c"># → board    http://localhost:3000</span></code></pre>
+<span class="c"># → backend  http://localhost:8788</span>
+<span class="c"># → board    runs in the desktop app</span></code></pre>
             <div class="terminal-foot">Bring your own model key. No account required.</div>
           </div>
         </div>
@@ -309,14 +309,14 @@ docker compose up -d
             <div class="ribbon">Early access</div>
             <h3>Pro</h3>
             <div class="amount"><span>$</span>12<small>/month</small></div>
-            <p class="price-sub">Cloud AI that joins the conversation. 3-day free trial.</p>
+            <p class="price-sub">AI notes that work alongside you. 3-day free trial.</p>
             <ul>
-              <li>Desktop app, all platforms</li>
+              <li>Windows desktop app (macOS/Linux from source)</li>
               <li>Local Whisper transcription</li>
               <li>Cloud notes with frontier models</li>
               <li>Live suggestions and risk flags</li>
-              <li>Shared, real-time whiteboard</li>
-              <li>Meeting history and search</li>
+              <li>Excalidraw board, filled in live</li>
+              <li>Works with Meet, Zoom or Teams audio</li>
               <li>Cancel anytime in PayPal</li>
             </ul>
             <div class="paypal-wrap">
@@ -334,7 +334,7 @@ docker compose up -d
               <li>Full platform, Apache-2.0</li>
               <li>Docker Compose, one command</li>
               <li>Bring your own model</li>
-              <li>Air-gap friendly</li>
+              <li>No database to run</li>
               <li>No per-seat limits</li>
             </ul>
             <a class="button outline full" href="#selfhost">Read the docs</a>
@@ -359,7 +359,7 @@ docker compose up -d
           </details>
           <details class="reveal">
             <summary>What does Pro actually add?</summary>
-            <p>The desktop app on every platform, local transcription, cloud notes powered by frontier models, live suggestions, the shared real-time board, and searchable meeting history. Self-hosting is free if you bring your own model key.</p>
+            <p>The Windows desktop app, local transcription, cloud notes powered by frontier models, live suggestions, and the Excalidraw board. Self-hosting is free if you bring your own model key.</p>
           </details>
           <details class="reveal">
             <summary>Where does my audio go?</summary>

@@ -1,16 +1,19 @@
-# meeting-partner
+# TalkSketch platform
 
-An AI meeting partner that joins a call, follows the transcript, writes notes, and draws on a
-shared Excalidraw board while the meeting is still happening.
+Self-hostable backend for TalkSketch: Google sign-in, 3-day trials, PayPal activation and
+cancellation webhooks, one stateless `/v1/analyze` call, an optional `/v1/transcribe`
+fallback, and the hosted transcript demo. It stores no meeting audio and no canvas state —
+the desktop client owns capture, transcription, notes and the Excalidraw board.
 
 It is an **assembly of projects that already work**, not a new meeting platform:
 
 | Concern | Reused project | License |
 | --- | --- | --- |
-| Bot joins Meet / Teams / Zoom, audio capture, transcription | [Vexa](https://github.com/Vexa-ai/vexa) 0.12 | Apache-2.0 |
-| Shared whiteboard, live sync, element API | [mcp-excalidraw-server](https://github.com/yctimlin/mcp_excalidraw) 2.2 | MIT |
-| Agent loop, tool calling, MCP client, turn limits | [OpenAI Agents SDK](https://github.com/openai/openai-agents-js) 0.22 | MIT |
-| Decision model | DeepSeek V4.1 Flash (default) or any tool-calling model | — |
+| Notes / actions / board operations | any OpenAI-compatible model (DeepSeek by default) | – |
+| Google sign-in | [google-auth-library](https://github.com/googleapis/google-auth-library-nodejs) | Apache-2.0 |
+| Payments and subscription state | PayPal Subscriptions API | – |
+| Optional bot transcript source | [Vexa](https://github.com/Vexa-ai/vexa) 0.12 | Apache-2.0 |
+| Canvas (client side) | [Excalidraw](https://github.com/excalidraw/excalidraw) / [mcp-excalidraw-server](https://github.com/yctimlin/mcp_excalidraw) | MIT |
 
 The glue in this repo is about 1,250 lines — transcript adapters, a rolling window, rate limits, a
 Markdown/JSONL record, prompts, and the scheduler. There is no in-house agent loop, tool protocol,
@@ -46,32 +49,38 @@ WebSocket sync channel, and 27 MCP tools (`create_element`, `batch_create_elemen
 `describe_scene`, screenshots, export). The agent draws through MCP instead of reverse-engineering
 a collaboration protocol. Details: [docs/0001-integration-contracts.md](docs/0001-integration-contracts.md).
 
-## Quick start
+## Self-host the service
 
-Requirements: Node 20+, a DeepSeek API key (or any OpenAI-compatible endpoint).
+Requirements: Node 20+, an OpenAI-compatible model key, a Google OAuth web client, and a
+PayPal app if you want billing. Production needs HTTPS for the OAuth redirect.
 
 ```bash
 npm install
-cp .env.example .env          # add OPENAI_API_KEY
-npm run dev
+cp .env.example .env      # fill in the values
+npm run build
+node dist/web.js          # http://localhost:8788
 ```
 
-The demo transcript runs by default, so no meeting is needed. The Excalidraw MCP server starts the
-canvas automatically; open **http://127.0.0.1:3000** to watch the board fill in. Notes land in
-`data/<meeting-id>/`.
+- **AI only:** `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`.
+- **Sign-in and trials:** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET`,
+  `PUBLIC_BASE_URL`, `TRIAL_DAYS`. Without Google, access keys still work.
+- **Billing:** `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_PLAN_ID`,
+  `PAYPAL_WEBHOOK_ID`, `PAYPAL_API_BASE`.
+- **Cloud STT fallback:** `STT_API_KEY` (OpenAI-compatible transcription endpoint).
 
-Check the board wiring at any time:
+Google Cloud → Credentials → OAuth client (Web application) → authorized redirect URI:
+`${PUBLIC_BASE_URL}/v1/auth/google/callback`.
 
-```bash
-npm run board:check
-# excalidraw MCP ok ... tools: 27
-```
+PayPal webhook: `${PUBLIC_BASE_URL}/v1/paypal/webhook` with
+`BILLING.SUBSCRIPTION.ACTIVATED`, `RE-ACTIVATED`, `CANCELLED`, `SUSPENDED`, `EXPIRED`.
 
-## Live demo
+Health check: `GET /healthz`. State lives in `DATA_DIR` (`trials.json`,
+`entitlements.json`) and hosted records are purged after 24 hours; use `backup.sh` for
+daily backups.
 
-The same engine, exposed as a one-shot web app:
+## Demo
 
-- URL: `http://54.255.181.218/` (temporary IP; `demo.talksketch.work` once DNS is added)
+- Hosted: <https://54.255.181.218.sslip.io>
 - Access code: `TALKSKETCH` (`DEMO_CODE`)
 - Paste a transcript, get notes, actions, suggestions and a rendered board.
 
@@ -81,6 +90,12 @@ Run it yourself:
 npm run build
 DEMO_CODE=my-code node dist/web.js   # http://localhost:8788
 ```
+
+## Legacy bot mode (optional)
+
+The sections below describe the earlier Vexa-driven bot (`src/index.ts`, `src/live.ts`,
+`src/agent.ts`). The shipped desktop app does not use it; the client captures and
+transcribes audio itself. Keep it only if you want a bot that joins calls server-side.
 
 ## With a real meeting
 
@@ -159,17 +174,21 @@ data/<platform>-<meeting-id>/
 └── summary.md      # final summary + action items
 ```
 
-There is intentionally no custom web UI: Vexa's Terminal (`:13000`) shows the bot and transcript,
-and the Excalidraw canvas (`:3000`) is the shared board.
+There is intentionally no custom web UI for bot mode: Vexa's Terminal (`:13000`) shows the bot
+and transcript, and the Excalidraw canvas (`:3000`) is the shared board. The web service in
+`src/web.ts` is the one used in production.
 
 ## Docker
 
 ```bash
-docker compose up --build
+cp .env.example .env      # fill in the values
+docker compose up --build # http://localhost:8788
 ```
 
-The compose file starts the Excalidraw canvas and the agent. Vexa stays its own stack; see the note
-at the bottom of `docker-compose.yml` about joining its Docker network.
+The image builds `dist/web.js` and serves the demo from the same process. `./data` is mounted
+for trials, entitlements and demo records, and the service needs no database or canvas
+container — the board lives in the desktop client. For production, put it behind Caddy or
+nginx with TLS and set `PUBLIC_BASE_URL` to the public HTTPS origin.
 
 ## Limitations
 
@@ -190,7 +209,7 @@ told that transcription and an AI assistant are active. Do not deploy this cover
 
 ## Credits and licenses
 
-This project is MIT. It depends on:
+This project is Apache-2.0. It depends on:
 
 - [Vexa](https://github.com/Vexa-ai/vexa) — Apache-2.0
 - [mcp-excalidraw-server](https://github.com/yctimlin/mcp_excalidraw) — MIT

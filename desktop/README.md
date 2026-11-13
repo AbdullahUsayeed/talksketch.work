@@ -1,8 +1,9 @@
-# TalkSketch Desktop (preview)
+# TalkSketch Desktop
 
-Electron shell that hosts Google Meet, captures captions, shows notes, and embeds
-**Excalidraw** locally. The server is used for exactly two things: Google sign-in and one
-stateless AI call per analysis window. No sessions, no server-side canvas.
+Electron shell that opens the meeting in your real browser, captures **system audio + your
+microphone**, transcribes locally with whisper.cpp, and shows notes, actions and an
+**Excalidraw** board. The server is used for Google sign-in, entitlements, and one stateless
+AI call per analysis window. No sessions, no server-side audio, no server-side canvas.
 
 ## Run
 
@@ -12,12 +13,19 @@ cd panel && npm install && npm run build && cd ..
 npm start
 ```
 
+The renderer is served from `http://localhost:3345`; the panel from
+`http://localhost:3344`; local MCP from `http://127.0.0.1:3333/mcp`.
+
 ## Audio and transcription
 
-**Start notes** captures system audio (everyone in the call) and your microphone. If the bundled
-whisper.cpp runtime is present, transcription runs on the device with `ggml-base.en.bin`; audio never
-leaves the machine. If the runtime is missing, the app falls back to the server's
-`/v1/transcribe` endpoint. Captions are the second fallback.
+**Start notes** captures system audio (everyone in the call) and your microphone through
+`getDisplayMedia` + `getUserMedia`. If the bundled whisper.cpp runtime is present,
+transcription runs on the device with `ggml-base.en.bin`; audio never leaves the machine.
+If the runtime is missing, the app falls back to the server's `/v1/transcribe` endpoint.
+Captions and manual Paste are the second fallbacks.
+
+The first start shows a consent disclosure: participants must be told an AI assistant is
+taking notes.
 
 ### Bundle the local runtime (needed for the installer)
 
@@ -37,6 +45,7 @@ whisper-runtime/
 - Model: <https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin> (~141 MB)
 
 `extraResources` copies it into the installed app. The installer is ~209 MB as a result.
+Without it the app still runs, using cloud STT when the server has `STT_API_KEY` set.
 
 ## Build the Windows installer
 
@@ -53,41 +62,53 @@ it again. The installer is unsigned until a code-signing certificate is configur
 
 ## Use
 
-1. Paste the Meet link in the address bar.
-2. Join (guest join works if Google sign-in is blocked in the webview).
-3. Turn on captions (CC).
-4. Press **Start notes**.
-5. Tabs: Notes, Actions, Board (Excalidraw), Claude (agent-pushed markdown).
+1. **Sign in with Google** — the system browser opens the OAuth consent page; the app polls
+   the server and stores the session token.
+2. Press **Open meeting** — the Meet link opens in your real browser (Google blocks
+   sign-in inside embedded browsers).
+3. In the app, press **Start notes** and accept the consent disclosure, then allow
+   screen/audio sharing and pick the meeting tab or window.
+4. Notes / Actions / Board update on the right every 20 seconds.
 
-The app analyzes the last few minutes every 20 seconds and applies board operations to the
-local Excalidraw scene.
+The app analyzes the last few minutes and applies board operations to the local Excalidraw
+scene. Nothing about the meeting is stored on the server.
 
 ## Google sign-in
 
 1. Google Cloud Console → **APIs & Services → Credentials → Create OAuth client ID → Web application**.
-2. Authorized JavaScript origin: `http://localhost:3345`.
-3. On the server, set `GOOGLE_CLIENT_ID`, `ALLOWED_EMAILS` (pilot emails), and a long
-   `SESSION_SECRET`; restart the demo service.
-4. The app will show **Sign in with Google**. The server verifies the ID token and issues a
-   12-hour session token; `/v1/analyze` accepts that token or a pilot access key.
+2. Authorized redirect URI: `https://<your-server>/v1/auth/google/callback`.
+3. On the server set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET`, and
+   optionally `ALLOWED_EMAILS`; restart the service.
+4. The app shows **Sign in with Google**; the server verifies the account and issues a
+   12-hour session token. `/v1/analyze` and `/v1/transcribe` accept that token or a pilot
+   access key, and enforce the trial server-side.
+
+## Trial and billing
+
+- The trial starts on first Google sign-in and lasts `TRIAL_DAYS` (default 3).
+- After it ends, AI endpoints return `402` and the app points at **Upgrade**.
+- **Upgrade** renders PayPal Buttons for `PAYPAL_PLAN_ID` and calls
+  `/v1/billing/activate`; PayPal webhooks flip the entitlement on cancellation or expiry.
 
 ## Local MCP
 
 `http://127.0.0.1:3333/mcp` (loopback only):
 
-- `get_recent_captions({ seconds })`
-- `send_meet_chat({ message })`
-- `get_meet_chat()`
-- `update_live_panel({ markdown })`
-- `speak_in_meeting({ text })` — local speech; route audio to VB-Cable and select it as the Meet mic.
+- `get_recent_captions({ seconds })` — rolling transcript with speaker labels
+- `speak_in_meeting({ text })` — local speech; route audio to VB-Cable and select it as the Meet mic
 
 Resource: `meet://transcript/live`.
 
+The chat tools (`send_meet_chat`, `get_meet_chat`) need a Meet page inside the app. This
+build opens Meet in the system browser, so they return "No Google Meet page is open."
+
 ## Limits
 
-- **Captions, not audio.** Meet's caption DOM is read via MutationObserver; Google can change it.
-- **One AI call per 20s per client.** No meeting state is stored server-side.
-- **Chat send / TTS are best-effort**, untested against every Meet build.
-- **Unsigned portable Windows build.** SmartScreen warns on first run.
+- **Windows only for now.** The source builds on macOS and Linux, but only the Windows
+  installer is produced.
+- **System audio capture** depends on the OS share picker and on the meeting playing sound on
+  this device.
+- **Speaker labels are coarse:** remote participants appear as `Meeting`, you as `You`.
+- **Whisper `base.en`** trades accuracy for size; `small.en` improves names and numbers.
+- **Unsigned build.** SmartScreen warns on first run until a certificate is configured.
 - **MCP is unauthenticated on loopback.** Any local process can call it while the app runs.
-- **Google sign-in requires the OAuth client setup above.**

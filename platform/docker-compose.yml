@@ -1,0 +1,12 @@
+services:
+  platform:
+    build: .
+    env_file: .env
+    environment:
+      DATA_DIR: /app/data
+      DEMO_PORT: 8788
+    ports:
+      - "8788:8788"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

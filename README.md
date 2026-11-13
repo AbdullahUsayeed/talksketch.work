@@ -29,8 +29,14 @@ Pushes to `main` deploy through `.github/workflows/pages.yml`. In the repo setti
 - **Desktop app (Electron + local Whisper + Excalidraw):** [`desktop/`](desktop/)
 - **Self-hosted platform (Vexa-compatible transcript API, stateless AI, demo, extension):** [`platform/`](platform/)
 
-The site is static; the app is a Windows installer; the platform is Docker/Node and can be
+The site is static; the app is a Windows installer; the platform is Node and can be
 self-hosted with your own model key.
+
+## Download
+
+- Windows installer (~209 MB, includes the local Whisper model):
+  <https://54.255.181.218.sslip.io/download/TalkSketch-Setup-0.1.0.exe>
+- The installer is currently unsigned, so Windows SmartScreen warns on first run.
 
 ## Billing
 
@@ -51,12 +57,17 @@ To change the price, create a new plan (PayPal plans are immutable) and replace 
 
 ```
 index.html            landing page
+start.html            pilot onboarding
 welcome.html          post-subscription page
+terms.html            terms of service
+privacy.html          privacy policy
 assets/styles.css     design system + animations
 assets/app.js         nav, reveals, typewriter, PayPal
 assets/logo.svg       wordmark
 assets/og.svg         social card
+desktop/              Electron app (capture, local Whisper, Excalidraw)
+platform/             self-hostable backend (auth, trials, billing, AI call)
 ```
 
-The software itself (desktop app + AI platform) is Apache-2.0 and lives alongside this
-site as it is published.
+Everything here is Apache-2.0. Build the app from `desktop/` and the backend from
+`platform/`; neither contains secrets.
