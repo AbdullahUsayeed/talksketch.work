@@ -35,7 +35,7 @@ self-hosted with your own model key.
 ## Download
 
 - Windows installer (~86 MB):
-  <https://54.255.181.218.sslip.io/download/TalkSketch-Setup-0.1.0.exe>
+  <https://api.talksketch.work/download/TalkSketch-Setup-0.1.0.exe>
 - The installer is currently unsigned, so Windows SmartScreen warns on first run.
 
 ## Billing

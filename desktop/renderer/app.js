@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 
 const DEFAULTS = {
-  server: "https://54.255.181.218.sslip.io",
+  server: "https://api.talksketch.work",
   code: "",
   topic: "Family meeting",
   participants: "",

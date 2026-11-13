@@ -54,7 +54,7 @@ const EnvSchema = z.object({
   ACCESS_KEYS: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
-  PUBLIC_BASE_URL: z.string().url().default('https://54.255.181.218.sslip.io'),
+  PUBLIC_BASE_URL: z.string().url().default('https://api.talksketch.work'),
   ALLOWED_EMAILS: z.string().optional(),
   SESSION_SECRET: z.string().optional(),
   TRIAL_DAYS: z.coerce.number().int().min(1).max(30).default(3),
