@@ -10,8 +10,8 @@ npm install
 npm start
 ```
 
-Default server: `http://54.255.181.218`, access code `TALKSKETCH`. Change under **Settings**
-to point at your own platform (`npm run demo` in the platform repo).
+Default server: `https://54.255.181.218.sslip.io`; paste the pilot access key under
+**Settings**. The public demo key is `TALKSKETCH`.
 
 ## Use
 

@@ -1,8 +1,8 @@
 const $ = (id) => document.getElementById(id);
 
 const DEFAULTS = {
-  server: "http://54.255.181.218",
-  code: "TALKSKETCH",
+  server: "https://54.255.181.218.sslip.io",
+  code: "",
   topic: "Family meeting",
   participants: "",
 };
@@ -56,7 +56,8 @@ function activate(name) {
 document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => activate(tab.dataset.tab)));
 
 function refreshBoard() {
-  $("board").src = `${settings.server.replace(/\/$/, "")}/api/live/board.png?t=${Date.now()}`;
+  const base = settings.server.replace(/\/$/, "");
+  $("board").src = `${base}/api/live/board.png?code=${encodeURIComponent(settings.code)}&t=${Date.now()}`;
 }
 
 /* ---------- panel state ---------- */
@@ -65,9 +66,10 @@ const esc = (value) =>
 
 async function poll() {
   try {
-    const res = await fetch(`${settings.server.replace(/\/$/, "")}/api/live/state`, { cache: "no-store" });
-    const state = await res.json();
-    render(state);
+    const base = settings.server.replace(/\/$/, "");
+    const res = await fetch(`${base}/api/live/state?code=${encodeURIComponent(settings.code)}`, { cache: "no-store" });
+    if (res.status === 401) return;
+    render(await res.json());
   } catch {
     /* server down: keep the last state */
   }
@@ -216,6 +218,11 @@ async function drain() {
 
 $("start").addEventListener("click", async () => {
   persist();
+  if (!settings.code) {
+    $("settings").hidden = false;
+    setStatus("Enter your pilot access key in Settings first.", true);
+    return;
+  }
   $("start").disabled = true;
   setStatus("Starting session…");
   try {
