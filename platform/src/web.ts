@@ -111,7 +111,7 @@ function allowTranscribe(ip: string, limit = 2000): boolean {
   return true;
 }
 
-function allowAnalyze(ip: string, limit = 120): boolean {
+function allowAnalyze(ip: string, limit = 600): boolean {
   const now = Date.now();
   const entry = analyzeUsage.get(ip);
   if (!entry || now > entry.resetAt) {
