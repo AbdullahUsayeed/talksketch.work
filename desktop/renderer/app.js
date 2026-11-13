@@ -8,6 +8,7 @@ const DEFAULTS = {
 };
 
 const settings = { ...DEFAULTS, ...JSON.parse(localStorage.getItem("ts_settings") || "{}") };
+let sessionToken = localStorage.getItem("ts_session") || "";
 for (const key of Object.keys(DEFAULTS)) $(key).value = settings[key] ?? "";
 
 function persist() {
@@ -35,93 +36,48 @@ function setStatus(text, error = false) {
   el.className = error ? "err" : "";
 }
 
-/* ---------- tabs ---------- */
-let activeTab = "notes";
-let boardTimer = null;
+/* ---------- panel bridge ---------- */
+const panel = $("panel");
+let panelReady = false;
 
-function activate(name) {
-  activeTab = name;
-  document.querySelectorAll(".tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === name));
-  document.querySelectorAll(".tab-pane").forEach((pane) => pane.classList.toggle("active", pane.id === `pane-${name}`));
-  if (boardTimer) {
-    clearInterval(boardTimer);
-    boardTimer = null;
+function post(type, payload = {}) {
+  if (!panel.contentWindow) return;
+  panel.contentWindow.postMessage({ source: "talksketch", type, ...payload }, "*");
+}
+
+window.addEventListener("message", (event) => {
+  if (event.data?.source === "talksketch-panel" && event.data.type === "ready") {
+    panelReady = true;
+    pushState();
   }
-  if (name === "board") {
-    refreshBoard();
-    boardTimer = setInterval(refreshBoard, 15000);
-  }
+});
+
+function pushState() {
+  post("state", { notes, actions, suggestions, summary });
 }
 
-document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => activate(tab.dataset.tab)));
+panel.addEventListener("load", () => {
+  panelReady = true;
+  pushState();
+});
 
-function refreshBoard() {
-  const base = settings.server.replace(/\/$/, "");
-  $("board").src = `${base}/api/live/board.png?code=${encodeURIComponent(settings.code)}&t=${Date.now()}`;
-}
-
-/* ---------- panel state ---------- */
-const esc = (value) =>
-  String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-
-async function poll() {
-  try {
-    const base = settings.server.replace(/\/$/, "");
-    const res = await fetch(`${base}/api/live/state?code=${encodeURIComponent(settings.code)}`, { cache: "no-store" });
-    if (res.status === 401) return;
-    render(await res.json());
-  } catch {
-    /* server down: keep the last state */
-  }
-}
-
-function render(state) {
-  $("summary").textContent = state.summary ?? "";
-  $("summary").hidden = !state.summary;
-
-  const notes = state.notes ?? [];
-  $("notes").innerHTML = notes.length
-    ? notes.map((note) => `<div class="item"><p>${esc(note.content)}</p></div>`).join("")
-    : `<p class="muted">No notes yet.</p>`;
-
-  const actions = state.actions ?? [];
-  $("actions-count").textContent = actions.length;
-  $("actions").innerHTML = actions.length
-    ? actions
-        .map((action) => {
-          const owner = [action.assignee, action.deadline].filter(Boolean).join(" · ");
-          return `<div class="item action"><p>${esc(action.content)}</p>${owner ? `<span class="meta">${esc(owner)}</span>` : ""}</div>`;
-        })
-        .join("")
-    : `<p class="muted">No action items yet.</p>`;
-
-  const suggestions = state.suggestions ?? [];
-  $("suggestions-count").textContent = suggestions.length;
-  $("suggestions").innerHTML = suggestions.length
-    ? suggestions
-        .map(
-          (suggestion) =>
-            `<div class="item suggestion"><span class="meta">${esc(suggestion.topic)}</span><p><b>${esc(suggestion.rationale)}</b></p><p>${esc(suggestion.content)}</p></div>`,
-        )
-        .join("")
-    : `<p class="muted">No suggestions yet.</p>`;
-}
-
-setInterval(poll, 3000);
-poll();
-
-/* ---------- Claude panel ---------- */
 if (window.talksketch?.onPanel) {
-  window.talksketch.onPanel((markdown) => {
-    $("claude").textContent = markdown;
-    activate("claude");
-  });
+  window.talksketch.onPanel((markdown) => post("claude", { markdown }));
 }
 
 /* ---------- captions ---------- */
 let capturing = false;
-let timer = null;
+let drainTimer = null;
+let analyzeTimer = null;
 let captured = 0;
+let transcript = [];
+let notes = [];
+let actions = [];
+let suggestions = [];
+let summary = "";
+const seenNotes = new Set();
+const seenActions = new Set();
+const seenSuggestions = new Set();
 
 const INSTALL_OBSERVER = String.raw`(() => {
   if (window.__tsObserver) return 'already';
@@ -188,17 +144,6 @@ async function injectObserver() {
   }
 }
 
-async function api(path, body) {
-  const res = await fetch(`${settings.server.replace(/\/$/, "")}${path}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ code: settings.code, ...body }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `Server ${res.status}`);
-  return data;
-}
-
 async function drain() {
   if (!capturing) return;
   try {
@@ -206,37 +151,111 @@ async function drain() {
     if (!Array.isArray(lines) || lines.length === 0) return;
     for (const line of lines) {
       window.talksketch?.line(line);
-      await api("/api/live/ingest", { lines: [line] });
+      transcript.push(`${line.speaker}: ${line.text}`);
+      if (transcript.length > 2000) transcript.splice(0, transcript.length - 2000);
       captured += 1;
     }
     $("captured").textContent = `${captured} lines captured`;
-    setStatus("Capturing captions · notes update in the right panel.");
+    setStatus("Capturing captions · notes appear in the panel.");
   } catch (error) {
     setStatus(`Capture error: ${error.message}`, true);
   }
 }
 
+/* ---------- stateless analysis ---------- */
+async function analyze(final = false) {
+  const text = transcript.join("\n").slice(-14000);
+  if (text.length < 60) return;
+
+  const base = settings.server.replace(/\/$/, "");
+  const headers = { "content-type": "application/json" };
+  if (sessionToken) headers.authorization = `Bearer ${sessionToken}`;
+
+  try {
+    setStatus(final ? "Writing the final summary…" : "Analyzing the last few minutes…");
+    const res = await fetch(`${base}/v1/analyze`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        code: settings.code,
+        topic: settings.topic,
+        participants: settings.participants.split(",").map((s) => s.trim()).filter(Boolean),
+        transcript: text,
+        existingNotes: notes.map((note) => note.content),
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Server ${res.status}`);
+
+    for (const note of data.notes ?? []) {
+      const key = note.content.toLowerCase().replace(/\s+/g, " ").slice(0, 120);
+      if (seenNotes.has(key)) continue;
+      seenNotes.add(key);
+      notes.push(note);
+    }
+    for (const action of data.actions ?? []) {
+      const key = String(action.task).toLowerCase().replace(/\s+/g, " ").slice(0, 120);
+      if (seenActions.has(key)) continue;
+      seenActions.add(key);
+      actions.push(action);
+    }
+    for (const suggestion of data.suggestions ?? []) {
+      const key = String(suggestion.topic).toLowerCase().slice(0, 80);
+      if (seenSuggestions.has(key) || suggestions.length >= 3) continue;
+      seenSuggestions.add(key);
+      suggestions.push(suggestion);
+    }
+
+    if (data.summary) summary = data.summary;
+    pushState();
+    if (Array.isArray(data.board) && data.board.length > 0) post("board", { ops: data.board });
+    setStatus(final ? "Done. Summary is in Notes." : "Up to date.");
+  } catch (error) {
+    setStatus(`Analysis failed: ${error.message}`, true);
+  }
+}
+
+function reset() {
+  transcript = [];
+  notes = [];
+  actions = [];
+  suggestions = [];
+  summary = "";
+  seenNotes.clear();
+  seenActions.clear();
+  seenSuggestions.clear();
+  pushState();
+}
+
+function stopTimers() {
+  capturing = false;
+  if (drainTimer) clearInterval(drainTimer);
+  if (analyzeTimer) clearInterval(analyzeTimer);
+  drainTimer = null;
+  analyzeTimer = null;
+}
+
 $("start").addEventListener("click", async () => {
   persist();
-  if (!settings.code) {
+  if (!settings.code && !sessionToken) {
     $("settings").hidden = false;
     setStatus("Enter your pilot access key in Settings first.", true);
     return;
   }
   $("start").disabled = true;
-  setStatus("Starting session…");
+  setStatus("Starting…");
   try {
-    await api("/api/live/start", { topic: settings.topic, participants: settings.participants });
     const injected = await injectObserver();
     if (injected === "failed") throw new Error("The Meet page is not ready yet.");
+    reset();
     capturing = true;
     captured = 0;
     $("captured").textContent = "0 lines captured";
     $("stop").hidden = false;
     setStatus("Live. Turn on captions (CC) in Meet.");
-    timer = setInterval(drain, 900);
-    drain();
-    poll();
+    drainTimer = setInterval(drain, 900);
+    analyzeTimer = setInterval(() => analyze(false), 20000);
+    setTimeout(() => analyze(false), 5000);
   } catch (error) {
     setStatus(`Could not start: ${error.message}`, true);
     $("start").disabled = false;
@@ -244,19 +263,10 @@ $("start").addEventListener("click", async () => {
 });
 
 $("stop").addEventListener("click", async () => {
-  capturing = false;
-  if (timer) clearInterval(timer);
-  timer = null;
+  stopTimers();
   $("stop").hidden = true;
   $("start").disabled = false;
-  setStatus("Stopping and writing the summary…");
-  try {
-    await api("/api/live/end", {});
-    setStatus("Meeting ended. Summary is in the Notes tab.");
-    poll();
-  } catch (error) {
-    setStatus(`Stop failed: ${error.message}`, true);
-  }
+  await analyze(true);
 });
 
 $("meet").addEventListener("dom-ready", () => {
@@ -267,3 +277,49 @@ $("meet").addEventListener("dom-ready", () => {
 $("meet").addEventListener("did-fail-load", () => setStatus("Meeting view failed to load. Check the URL.", true));
 
 persist();
+pushState();
+
+/* ---------- Google sign-in ---------- */
+async function setupGoogle() {
+  try {
+    const config = await fetch(`${settings.server.replace(/\/$/, "")}/v1/config`).then((res) => res.json());
+    if (!config.googleEnabled || !config.googleClientId) return;
+    await new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+    window.google.accounts.id.initialize({
+      client_id: config.googleClientId,
+      callback: async (response) => {
+        try {
+          const res = await fetch(`${settings.server.replace(/\/$/, "")}/v1/auth/google`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ credential: response.credential }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Sign-in failed.");
+          sessionToken = data.token;
+          localStorage.setItem("ts_session", sessionToken);
+          setStatus(`Signed in as ${data.email}.`);
+          $("google-signin").style.display = "none";
+        } catch (error) {
+          setStatus(error.message, true);
+        }
+      },
+    });
+    window.google.accounts.id.renderButton($("google-signin"), {
+      theme: "filled_black",
+      size: "medium",
+      text: "signin_with",
+      shape: "pill",
+    });
+  } catch {
+    /* Google sign-in is optional for pilot keys */
+  }
+}
+
+setupGoogle();

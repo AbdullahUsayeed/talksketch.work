@@ -1,5 +1,6 @@
 const { app, BrowserWindow, session, shell, ipcMain, webContents } = require('electron');
 const http = require('node:http');
+const fs = require('node:fs');
 const { randomUUID } = require('node:crypto');
 const { spawn } = require('node:child_process');
 const path = require('node:path');
@@ -87,6 +88,46 @@ function speak(text) {
     { stdio: ['pipe', 'ignore', 'ignore'] },
   );
   ps.stdin.end(text);
+}
+
+function serveDir(root, port) {
+  const mime = {
+    '.html': 'text/html; charset=utf-8',
+    '.js': 'text/javascript; charset=utf-8',
+    '.css': 'text/css; charset=utf-8',
+    '.svg': 'image/svg+xml',
+    '.png': 'image/png',
+    '.woff2': 'font/woff2',
+    '.woff': 'font/woff',
+    '.json': 'application/json',
+  };
+
+  const server = http.createServer((req, res) => {
+    let pathname = decodeURIComponent((req.url ?? '/').split('?')[0]);
+    if (pathname === '/') pathname = '/index.html';
+    const file = path.normalize(path.join(root, pathname));
+    if (!file.startsWith(root)) {
+      res.writeHead(403);
+      res.end('Forbidden');
+      return;
+    }
+    fs.readFile(file, (error, data) => {
+      if (error) {
+        res.writeHead(404);
+        res.end('Not found');
+        return;
+      }
+      res.writeHead(200, { 'content-type': mime[path.extname(file)] ?? 'application/octet-stream' });
+      res.end(data);
+    });
+  });
+
+  server.listen(port, '127.0.0.1');
+}
+
+function servePanel() {
+  serveDir(path.join(__dirname, 'panel-dist'), 3344);
+  serveDir(path.join(__dirname, 'renderer'), 3345);
 }
 
 async function startMcp() {
@@ -239,7 +280,7 @@ function createWindow() {
     },
   });
 
-  mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  mainWindow.loadURL('http://localhost:3345/index.html');
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://')) shell.openExternal(url);
@@ -252,6 +293,7 @@ ipcMain.on('caption', (_event, line) => addCaption(line));
 app.whenReady().then(async () => {
   allowMedia(session.defaultSession);
   allowMedia(session.fromPartition('persist:meet'));
+  servePanel();
   createWindow();
 
   try {

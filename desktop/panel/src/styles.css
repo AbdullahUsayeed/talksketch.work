@@ -1,0 +1,55 @@
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  font: 13px/1.5 Inter, ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  color: #14130f;
+  background: #fffdf7;
+}
+.panel { display: flex; flex-direction: column; height: 100%; }
+.tabs {
+  display: flex; gap: 2px; padding: 8px 8px 0; flex: none;
+  background: #efe9dc; border-bottom: 1px solid #ded6c5;
+}
+.tab {
+  background: transparent; border: 1px solid transparent; border-bottom: 0;
+  color: #6b675c; padding: 7px 11px; border-radius: 8px 8px 0 0;
+  font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.tab:hover { color: #14130f; }
+.tab.active { background: #fffdf7; border-color: #ded6c5; color: #14130f; }
+.tab span {
+  display: inline-block; margin-left: 6px; padding: 0 6px;
+  background: #efe9dc; border: 1px solid #ded6c5; border-radius: 999px; font-size: 10px;
+}
+.content { position: relative; flex: 1; min-height: 0; }
+.board { position: absolute; inset: 0; display: none; }
+.board.active { display: block; }
+.board .excalidraw { height: 100%; }
+.list {
+  position: absolute; inset: 0; overflow: auto; padding: 14px;
+  visibility: hidden; background: #fffdf7;
+}
+.list.active { visibility: visible; }
+.summary { margin: 0 0 14px; color: #2a2822; font-size: 13.5px; line-height: 1.55; }
+.item {
+  border-left: 3px solid #2f6bff; background: #f6f2e9; border-radius: 0 8px 8px 0;
+  padding: 8px 10px; margin-bottom: 8px;
+}
+.item p { margin: 0; }
+.item p + p { margin-top: 4px; color: #6b675c; }
+.item span { display: block; margin-top: 3px; color: #6b675c; font-size: 11px; }
+.item.action { border-left-color: #17b26a; }
+.item.suggestion { border-left-color: #ffd43b; }
+.item.suggestion b { display: block; margin-bottom: 3px; }
+h3 {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .1em;
+  color: #6b675c; margin: 16px 0 6px;
+}
+h3:first-child { margin-top: 0; }
+.empty { color: #6b675c; font-size: 12.5px; }
+pre {
+  white-space: pre-wrap; font: 12px/1.55 ui-monospace, "Cascadia Code", Consolas, monospace;
+  background: #f6f2e9; border: 1px solid #ded6c5; border-radius: 10px; padding: 12px; margin: 0;
+  color: #2a2822;
+}

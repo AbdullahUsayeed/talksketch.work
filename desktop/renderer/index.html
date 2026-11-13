@@ -20,6 +20,7 @@
       </div>
 
       <div class="actions">
+        <div id="google-signin"></div>
         <button id="settings-toggle" class="ghost">Settings</button>
         <button id="start" class="primary">Start notes</button>
         <button id="stop" class="danger" hidden>Stop</button>
@@ -32,8 +33,8 @@
       <label>Topic<input id="topic" value="Family meeting" /></label>
       <label>Participants<input id="participants" placeholder="Sarah, Tom" /></label>
       <p class="hint">
-        Local MCP: <code>http://127.0.0.1:3333/mcp</code> · tools: get_recent_captions, send_meet_chat,
-        get_meet_chat, update_live_panel, speak_in_meeting.
+        Notes and the board run in this app. The server only gets the transcript window for one
+        stateless AI call. Local MCP: <code>http://127.0.0.1:3333/mcp</code>.
       </p>
     </section>
 
@@ -49,35 +50,7 @@
       </div>
 
       <div class="pane notes">
-        <div class="tabs" id="tabs">
-          <button class="tab active" data-tab="notes">Notes</button>
-          <button class="tab" data-tab="actions">Actions</button>
-          <button class="tab" data-tab="board">Board</button>
-          <button class="tab" data-tab="claude">Claude</button>
-        </div>
-
-        <div class="panel-body">
-          <div class="tab-pane active" id="pane-notes">
-            <p class="summary" id="summary"></p>
-            <div id="notes"><p class="muted">Notes appear here once the meeting starts.</p></div>
-          </div>
-
-          <div class="tab-pane" id="pane-actions">
-            <h4>Action items <span id="actions-count">0</span></h4>
-            <div id="actions"><p class="muted">No action items yet.</p></div>
-            <h4>Suggestions <span id="suggestions-count">0</span></h4>
-            <div id="suggestions"><p class="muted">No suggestions yet.</p></div>
-          </div>
-
-          <div class="tab-pane board-pane" id="pane-board">
-            <img id="board" alt="Whiteboard generated from the meeting" />
-            <p class="muted" id="board-hint">The board refreshes while the AI draws.</p>
-          </div>
-
-          <div class="tab-pane" id="pane-claude">
-            <pre id="claude">Claude's plans, snippets and diagrams appear here when it calls update_live_panel.</pre>
-          </div>
-        </div>
+        <iframe id="panel" src="http://127.0.0.1:3344/" title="TalkSketch panel"></iframe>
       </div>
     </main>
 
