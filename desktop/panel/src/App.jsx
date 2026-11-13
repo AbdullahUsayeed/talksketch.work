@@ -110,7 +110,7 @@ export default function App() {
         <div className={`list ${tab === 'notes' ? 'active' : ''}`}>
           {state.summary ? <p className="summary">{state.summary}</p> : null}
           {state.notes.length === 0 ? (
-            <p className="empty">Notes appear here once the meeting starts.</p>
+            <p className="empty">Notes appear here once you start listening.</p>
           ) : (
             state.notes.map((note, index) => (
               <div className="item" key={index}>

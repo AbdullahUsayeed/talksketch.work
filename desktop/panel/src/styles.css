@@ -2,7 +2,7 @@
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
 body {
-  font: 13px/1.5 Inter, ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  font: 13.5px/1.55 Inter, ui-sans-serif, system-ui, "Segoe UI", "Nirmala UI", "Noto Sans Bengali", sans-serif;
   color: #14130f;
   background: #fffdf7;
 }
@@ -27,14 +27,15 @@ body {
 .board.active { display: block; }
 .board .excalidraw { height: 100%; }
 .list {
-  position: absolute; inset: 0; overflow: auto; padding: 14px;
+  position: absolute; inset: 0; overflow: auto;
+  padding: 28px max(24px, calc((100% - 1040px) / 2));
   visibility: hidden; background: #fffdf7;
 }
 .list.active { visibility: visible; }
-.summary { margin: 0 0 14px; color: #2a2822; font-size: 13.5px; line-height: 1.55; }
+.summary { margin: 0 0 18px; color: #2a2822; font-size: 15px; line-height: 1.6; }
 .item {
   border-left: 3px solid #2f6bff; background: #f6f2e9; border-radius: 0 8px 8px 0;
-  padding: 8px 10px; margin-bottom: 8px;
+  padding: 10px 12px; margin-bottom: 9px;
 }
 .item p { margin: 0; }
 .item p + p { margin-top: 4px; color: #6b675c; }

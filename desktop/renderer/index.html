@@ -31,46 +31,22 @@
       <label>Topic<input id="topic" value="Family meeting" /></label>
       <label>Participants<input id="participants" placeholder="Sarah, Tom" /></label>
       <p class="hint">
-        Start captures system audio + mic and sends short chunks to the server for cloud
-        transcription (English and Bangla). Audio is not stored. Captions and Paste are fallbacks.
-        Local MCP:
+        Start captures this device's audio + your mic and sends short chunks to the server for
+        cloud transcription (English and Bangla). YouTube, Zoom, WhatsApp — anything playing here.
+        Audio is not stored. Paste is the fallback. Local MCP:
         <code>http://127.0.0.1:3333/mcp</code>.
       </p>
       <button id="diagnostics" class="ghost" type="button">Copy diagnostics</button>
     </section>
 
     <main class="split">
-      <div class="pane meet">
-        <div class="join">
-          <div class="join-mark">✳</div>
-          <h2>Join in your browser</h2>
-          <p>
-            Open Meet, Zoom or Teams normally. TalkSketch listens to system audio and writes notes
-            beside it — no bot joins the call.
-          </p>
-          <div class="join-row">
-            <input id="meet-url" value="https://meet.google.com/" spellcheck="false" />
-            <button id="open-meet" class="primary">Open meeting</button>
-          </div>
-          <ol>
-            <li>Join the call in Chrome or the desktop app.</li>
-            <li>Press <b>Start notes</b> and allow screen + audio sharing.</li>
-            <li>Keep talking. Notes land on the right.</li>
-          </ol>
-          <p class="join-note">
-            Google blocks sign-in inside embedded browsers, so the meeting opens in your real browser.
-            The app still hears it through system audio.
-          </p>
-        </div>
-      </div>
-
       <div class="pane notes">
-        <iframe id="panel" src="http://127.0.0.1:3344/" title="TalkSketch panel"></iframe>
+        <iframe id="panel" src="http://127.0.0.1:3344/" aria-label="TalkSketch panel"></iframe>
       </div>
     </main>
 
     <footer class="status">
-      <span id="status">Ready. Join a meeting in your browser, then start notes.</span>
+      <span id="status">Ready. Press Start notes to listen to this device.</span>
       <span id="captured">0 lines captured</span>
     </footer>
 
@@ -83,8 +59,8 @@
           to write notes.
         </p>
         <p class="modal-hint">
-          You must tell everyone in the call that an AI assistant is taking notes. Do not use this
-          covertly.
+          You must tell everyone present, or in the call, that an AI assistant is taking notes.
+          Do not use this covertly.
         </p>
         <div class="modal-actions">
           <button id="consent-cancel" class="ghost" type="button">Cancel</button>
@@ -97,8 +73,8 @@
       <div class="modal-card">
         <h3>Paste captions</h3>
         <p class="modal-hint">
-          If Meet's captions aren't detected, paste lines as <b>Name: text</b>, one per line.
-          They are added to the transcript and analyzed.
+          Paste text or captions as <b>Name: text</b>, one per line. They are added to the
+          transcript and analyzed.
         </p>
         <textarea id="paste-text" rows="9" placeholder="Sarah: Let's start with the budget.&#10;Tom: We're 12% over on travel."></textarea>
         <div class="modal-actions">

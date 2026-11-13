@@ -1,9 +1,9 @@
 # TalkSketch Desktop
 
-Electron shell that opens the meeting in your real browser, captures **system audio + your
-microphone**, and shows notes, actions and an **Excalidraw** board. Short audio chunks go to
-the server for cloud speech-to-text (English and Bangla); the transcript goes to DeepSeek for
-notes. No local model, no server-side audio storage, no server-side canvas.
+Electron shell that captures **system audio + your microphone** and shows notes, actions and an
+**Excalidraw** board in a full-window panel. Short audio chunks go to the server for cloud
+speech-to-text (English and Bangla); the transcript goes to DeepSeek for notes. No local model,
+no meeting integration, no server-side audio storage, no server-side canvas.
 
 ## Run
 
@@ -49,16 +49,15 @@ it again. The installer is unsigned until a code-signing certificate is configur
 
 1. **Sign in with Google** — the system browser opens the OAuth consent page; the app polls
    the server and stores the session token.
-2. Press **Open meeting** — the Meet link opens in your real browser (Google blocks
-   sign-in inside embedded browsers).
-3. In the app, press **Start notes** and accept the consent disclosure, then allow
-   screen/audio sharing and pick the meeting tab or window.
-4. Notes / Actions / Board update on the right every 20 seconds.
+2. Press **Start notes** and accept the consent disclosure, then allow screen/audio sharing
+   and pick the window or screen that is playing the meeting.
+3. Notes / Actions / Board update in the window every 20 seconds.
+
+It works with any audio on the device — Meet, Zoom, Teams, WhatsApp, a YouTube video. There is
+no meeting URL and no bot; the app only listens while you are capturing.
 
 The app analyzes the last few minutes and applies board operations to the local Excalidraw
-scene. Nothing about the meeting is stored on the server.
-
-## Google sign-in
+scene. Nothing about the meeting is stored on the server.## Google sign-in
 
 1. Google Cloud Console → **APIs & Services → Credentials → Create OAuth client ID → Web application**.
 2. Authorized redirect URI: `https://<your-server>/v1/auth/google/callback`.

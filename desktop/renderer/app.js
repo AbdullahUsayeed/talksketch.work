@@ -24,16 +24,6 @@ $("settings-toggle").addEventListener("click", () => {
   $("settings").hidden = !$("settings").hidden;
 });
 
-$("open-meet").addEventListener("click", () => {
-  const url = $("meet-url").value.trim();
-  if (!/^https:\/\//.test(url)) {
-    setStatus("Enter an https meeting URL.", true);
-    return;
-  }
-  window.talksketch?.openExternal(url);
-  setStatus("Opening the meeting in your browser…");
-});
-
 function setStatus(text, error = false) {
   const el = $("status");
   el.textContent = text;
