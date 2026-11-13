@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#12151d"/>
+      <stop offset="1" stop-color="#1b2030"/>
+    </linearGradient>
+    <pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="1.5" cy="1.5" r="1.5" fill="#ffffff" opacity="0.08"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#g)"/>
+  <rect width="1200" height="630" fill="url(#dots)"/>
+  <g transform="translate(80 74)">
+    <rect width="54" height="54" rx="14" fill="#f6f2e9"/>
+    <path d="M14 18c0-2 1.6-3.6 3.6-3.6h18.8c2 0 3.6 1.6 3.6 3.6v10.4c0 2-1.6 3.6-3.6 3.6H27l-6 4.6v-4.6h-.4C18.6 32 16 30.4 16 28.4V18Z" fill="#14130f"/>
+    <path d="M36 38c3-.7 4.7-2.6 5.2-5.4" stroke="#ff5a36" stroke-width="2.6" stroke-linecap="round"/>
+  </g>
+  <text x="150" y="112" font-family="Inter, sans-serif" font-size="26" font-weight="700" fill="#f6f2e9">talksketch</text>
+  <text x="80" y="270" font-family="Georgia, serif" font-size="84" font-weight="700" fill="#f6f2e9">Meetings that</text>
+  <text x="80" y="366" font-family="Georgia, serif" font-size="84" font-style="italic" fill="#ff5a36">think in ink.</text>
+  <text x="82" y="430" font-family="Inter, sans-serif" font-size="26" fill="#b9b4a7">Live notes, proactive suggestions, a whiteboard that draws itself.</text>
+  <g transform="translate(80 500)">
+    <rect width="210" height="46" rx="10" fill="#f6f2e9"/>
+    <text x="105" y="30" text-anchor="middle" font-family="Inter, sans-serif" font-size="17" font-weight="700" fill="#14130f">Open source</text>
+    <rect x="230" width="210" height="46" rx="10" fill="none" stroke="#ffffff" stroke-opacity="0.25"/>
+    <text x="335" y="30" text-anchor="middle" font-family="Inter, sans-serif" font-size="17" font-weight="600" fill="#f6f2e9">Self-hostable</text>
+  </g>
+  <g transform="translate(800 150) rotate(3)">
+    <rect width="300" height="250" rx="16" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.14"/>
+    <rect x="26" y="30" width="150" height="72" rx="8" fill="#c9f0d8"/>
+    <text x="40" y="62" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#16150f">SSO ships in Q3</text>
+    <text x="40" y="82" font-family="Inter, sans-serif" font-size="11" fill="#4c5b50">owner: Jon</text>
+    <rect x="150" y="126" width="126" height="66" rx="8" fill="#ffe89a"/>
+    <text x="162" y="154" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#16150f">Retention 2y</text>
+    <rect x="26" y="168" width="132" height="58" rx="8" fill="#ffcdc1"/>
+    <text x="38" y="194" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#16150f">Storage risk</text>
+  </g>
+</svg>

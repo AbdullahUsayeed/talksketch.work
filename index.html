@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TalkSketch — the meeting that writes itself</title>
+    <meta
+      name="description"
+      content="TalkSketch sits in your call, writes the notes, flags what you missed, and sketches the whiteboard live. Open source. Self-hostable."
+    />
+    <meta name="theme-color" content="#f6f2e9" />
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/assets/favicon.svg" />
+    <link rel="canonical" href="https://talksketch.work/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://talksketch.work/" />
+    <meta property="og:title" content="TalkSketch — the meeting that writes itself" />
+    <meta
+      property="og:description"
+      content="Live notes, proactive suggestions and a whiteboard that draws itself. Open source, self-hostable, $12/month for cloud AI."
+    />
+    <meta property="og:image" content="https://talksketch.work/assets/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:image" content="https://talksketch.work/assets/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Caveat:wght@500;600&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/assets/styles.css" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "TalkSketch",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Windows, macOS, Linux",
+        "description": "AI meeting partner with live notes, proactive suggestions and a shared whiteboard.",
+        "offers": [
+          { "@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free" },
+          { "@type": "Offer", "price": "12", "priceCurrency": "USD", "name": "Pro" }
+        ],
+        "license": "https://www.apache.org/licenses/LICENSE-2.0"
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="nav" id="nav">
+      <a class="brand" href="/" aria-label="TalkSketch home">
+        <img src="/assets/logo.svg" alt="TalkSketch" width="160" height="40" />
+      </a>
+      <nav class="nav-links" id="navLinks" aria-label="Main">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#opensource">Open source</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="ghost" href="https://github.com/AbdullahUsayeed/talksketch.work" target="_blank" rel="noreferrer">
+          <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.4-1.3-1.8-1.3-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.2 4.7 18.2 5 18.2 5c.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z"/></svg>
+          GitHub
+        </a>
+        <a class="button small" href="#pricing">Get Pro</a>
+        <button class="menu" id="menu" aria-label="Menu" aria-expanded="false">
+          <span></span><span></span>
+        </button>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="pulse"></span> Open source · Early access</div>
+          <h1>Meetings that<br /><em>think in ink.</em></h1>
+          <p class="lede">
+            TalkSketch sits in your call, writes the notes, flags what everyone missed,
+            and sketches the whiteboard — while you talk.
+          </p>
+          <div class="hero-actions">
+            <a class="button" href="#pricing">Start free</a>
+            <a class="button outline" href="#how">See it work</a>
+          </div>
+          <ul class="hero-points">
+            <li>Works with Zoom, Meet and Teams</li>
+            <li>Local transcription, no bot required</li>
+            <li>Self-host the whole thing</li>
+          </ul>
+        </div>
+
+        <div class="hero-visual" aria-hidden="true">
+          <div class="board" id="board">
+            <div class="board-bar">
+              <span class="dots"><i></i><i></i><i></i></span>
+              <span class="board-title">Q3 launch review</span>
+              <span class="live"><span class="pulse"></span>LIVE</span>
+            </div>
+
+            <div class="board-canvas">
+              <div class="note note-green n1">
+                <span class="tag">Decision</span>
+                <strong>SSO ships in Q3</strong>
+                <small>owner: Jon</small>
+              </div>
+              <div class="note note-yellow n2">
+                <span class="tag">Scope</span>
+                <strong>Importer moves to Q4</strong>
+              </div>
+              <div class="note note-blue n3">
+                <span class="tag">Number</span>
+                <strong>Retention: 2 years</strong>
+                <small>configurable per tenant</small>
+              </div>
+              <div class="note note-coral n4">
+                <span class="tag">Risk</span>
+                <strong>7-year storage cost</strong>
+              </div>
+
+              <svg class="doodle arrow" viewBox="0 0 220 120" fill="none">
+                <path d="M8 12c46 72 100 84 190 74" stroke="#ff5a36" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 8" />
+                <path d="M180 74l20 12-23 8" stroke="#ff5a36" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <svg class="doodle circle" viewBox="0 0 120 80" fill="none">
+                <path d="M8 44C14 14 92 6 110 34c17 26-58 46-90 30C4 57 8 30 34 20" stroke="#f6f2e9" stroke-width="2.4" stroke-linecap="round" opacity=".55" />
+              </svg>
+
+              <div class="suggest" id="suggest">
+                <span class="spark">✦</span>
+                <div>
+                  <b>Worth raising</b>
+                  <p>Ask legal about retention before Friday — the spec is due Wednesday.</p>
+                </div>
+              </div>
+
+              <div class="transcript">
+                <span class="who">Maya</span>
+                <span id="typed">Let's lock the retention default at two years.</span><span class="caret"></span>
+              </div>
+            </div>
+          </div>
+          <div class="float-badge badge-a">notes in 2s</div>
+          <div class="float-badge badge-b">0 bots in the room</div>
+        </div>
+      </section>
+
+      <div class="marquee" aria-label="Supported platforms">
+        <div class="marquee-track">
+          <span>Zoom</span><i>✳</i><span>Google Meet</span><i>✳</i><span>Microsoft Teams</span><i>✳</i>
+          <span>Jitsi</span><i>✳</i><span>Excalidraw</span><i>✳</i><span>OpenAI</span><i>✳</i>
+          <span>Zoom</span><i>✳</i><span>Google Meet</span><i>✳</i><span>Microsoft Teams</span><i>✳</i>
+          <span>Jitsi</span><i>✳</i><span>Excalidraw</span><i>✳</i><span>OpenAI</span><i>✳</i>
+        </div>
+      </div>
+
+      <section class="section" id="features">
+        <div class="section-head reveal">
+          <span class="kicker">The point</span>
+          <h2>You talk. It keeps up.</h2>
+          <p>
+            Not another transcript dump. TalkSketch decides what is worth keeping, what
+            deserves a sketch, and when to stay quiet.
+          </p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature reveal" data-delay="0">
+            <div class="icon ink">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 4h14v13H9l-4 3V4Z"/><path d="M9 8h6M9 12h4"/></svg>
+            </div>
+            <h3>Notes with a spine</h3>
+            <p>Decisions, numbers, owners and risks — one tight note every minute, never a wall of text.</p>
+          </article>
+
+          <article class="feature reveal" data-delay="40">
+            <div class="icon coral">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="3.2"/></svg>
+            </div>
+            <h3>Suggestions, not noise</h3>
+            <p>It speaks up only when it can add a risk, a tradeoff or a name you forgot. Capped at three per meeting.</p>
+          </article>
+
+          <article class="feature reveal" data-delay="80">
+            <div class="icon blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></svg>
+            </div>
+            <h3>A board that draws itself</h3>
+            <p>Agenda, key points, decisions and conclusions appear on a live Excalidraw canvas everyone can edit.</p>
+          </article>
+
+          <article class="feature reveal" data-delay="0">
+            <div class="icon green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h10M4 18h7"/><path d="M16 15l2 2 3-4"/></svg>
+            </div>
+            <h3>Action items that stick</h3>
+            <p>Only explicit commitments, with the owner and deadline attached. Duplicates get merged, not repeated.</p>
+          </article>
+
+          <article class="feature reveal" data-delay="40">
+            <div class="icon ink">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            </div>
+            <h3>No bot required</h3>
+            <p>Capture mic and system audio on your desktop. Or send a bot when you want one. Your call.</p>
+          </article>
+
+          <article class="feature reveal" data-delay="80">
+            <div class="icon coral">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l7 3v5c0 4.4-3 7.9-7 10-4-2.1-7-5.6-7-10V6l7-3Z"/><path d="M9 12l2 2 4-4"/></svg>
+            </div>
+            <h3>Private by default</h3>
+            <p>Transcription runs on your machine. Cloud AI is opt-in, and self-hosting means nothing leaves your network.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section split" id="how">
+        <div class="split-copy reveal">
+          <span class="kicker">Ninety seconds</span>
+          <h2>Join. Talk. Leave with the artifacts.</h2>
+          <ol class="steps">
+            <li>
+              <span>01</span>
+              <div><h3>Open the app</h3><p>Pick your mic, allow system audio. No calendar gymnastics, no invite link to paste.</p></div>
+            </li>
+            <li>
+              <span>02</span>
+              <div><h3>Talk like a human</h3><p>Notes land in the sidebar, decisions show up on the board, a suggestion appears only when it earns the interruption.</p></div>
+            </li>
+            <li>
+              <span>03</span>
+              <div><h3>Leave with the record</h3><p>Markdown summary, action items with owners, and a board you can keep editing or export.</p></div>
+            </li>
+          </ol>
+        </div>
+
+        <div class="demo-stack reveal" data-delay="80" aria-hidden="true">
+          <div class="demo-card demo-note">
+            <div class="demo-head"><span class="dot green"></span>Note · 00:42</div>
+            <p><b>Decision:</b> SSO and audit log ship in Q3. Bulk importer moves to Q4.</p>
+          </div>
+          <div class="demo-card demo-action">
+            <div class="demo-head"><span class="dot blue"></span>Action item</div>
+            <p><b>Jon</b> — Okta sandbox ready by <mark>Friday</mark></p>
+          </div>
+          <div class="demo-card demo-board">
+            <div class="mini-board">
+              <span class="mini-note pink">SSO</span>
+              <span class="mini-note yellow">Importer → Q4</span>
+              <span class="mini-note green">Retention 2y</span>
+              <svg viewBox="0 0 200 90" fill="none"><path d="M18 66c50 14 96-8 160-44" stroke="#14130f" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 6"/></svg>
+            </div>
+          </div>
+          <div class="demo-card demo-sum">
+            <div class="demo-head"><span class="dot coral"></span>Summary</div>
+            <p>Team cut the importer, locked two-year retention, and left with two owners and dates.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" id="opensource">
+        <div class="band-inner">
+          <div class="reveal">
+            <span class="kicker light">Open source, actually</span>
+            <h2>The whole thing. Apache&#8209;2.0.</h2>
+            <p>
+              The desktop app, the orchestrator, the prompts, the whiteboard bridge. Read it,
+              fork it, run it on your own box. No seat tax, no “contact sales”.
+            </p>
+            <div class="band-actions">
+              <a class="button light" href="https://github.com/AbdullahUsayeed/talksketch.work" target="_blank" rel="noreferrer">Browse the code</a>
+              <a class="text-link light" href="#selfhost">Self-host in one command →</a>
+            </div>
+          </div>
+          <div class="terminal reveal" data-delay="60" id="selfhost">
+            <div class="terminal-bar"><i></i><i></i><i></i><span>talksketch — zsh</span></div>
+            <pre><code><span class="c"># clone and run the whole stack</span>
+git clone https://github.com/AbdullahUsayeed/talksketch.work
+cd talksketch.work/platform
+cp .env.example .env
+docker compose up -d
+
+<span class="c"># → app      http://localhost:8787</span>
+<span class="c"># → board    http://localhost:3000</span></code></pre>
+            <div class="terminal-foot">Bring your own OpenAI key. No account required.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="pricing">
+        <div class="section-head reveal">
+          <span class="kicker">Pricing</span>
+          <h2>Free to own. Pay for the brain.</h2>
+          <p>Local transcription and the app stay free forever. Pro adds cloud AI, live suggestions and shared boards.</p>
+        </div>
+
+        <div class="price-grid">
+          <article class="price reveal">
+            <h3>Free</h3>
+            <div class="amount"><span>$</span>0<small>/forever</small></div>
+            <p class="price-sub">For anyone who wants their meetings back.</p>
+            <ul>
+              <li>Desktop app, all platforms</li>
+              <li>Local Whisper transcription</li>
+              <li>Unlimited meetings</li>
+              <li>Local notes and summary</li>
+              <li>Excalidraw board</li>
+            </ul>
+            <a class="button outline full" href="mailto:hello@talksketch.work?subject=TalkSketch%20free%20access">Get notified</a>
+          </article>
+
+          <article class="price featured reveal" data-delay="40">
+            <div class="ribbon">Early access</div>
+            <h3>Pro</h3>
+            <div class="amount"><span>$</span>12<small>/month</small></div>
+            <p class="price-sub">Cloud AI that joins the conversation. 7-day free trial.</p>
+            <ul>
+              <li>Everything in Free</li>
+              <li>Cloud notes with GPT-4o class models</li>
+              <li>Live suggestions and risk flags</li>
+              <li>Shared, real-time whiteboard</li>
+              <li>Meeting history and search</li>
+              <li>Cancel anytime in PayPal</li>
+            </ul>
+            <div class="paypal-wrap">
+              <div id="paypal-button-container"></div>
+              <button class="button full" id="paypal-fallback" hidden>Subscribe with PayPal</button>
+              <p class="paypal-note" id="paypal-note">Secure subscription via PayPal · 7 days free, then $12/month</p>
+            </div>
+          </article>
+
+          <article class="price reveal" data-delay="80">
+            <h3>Self-host</h3>
+            <div class="amount"><span>$</span>0<small>+ your API key</small></div>
+            <p class="price-sub">For teams who want the whole stack on their own metal.</p>
+            <ul>
+              <li>Full platform, Apache-2.0</li>
+              <li>Docker Compose, one command</li>
+              <li>Bring your own model</li>
+              <li>Air-gap friendly</li>
+              <li>No per-seat limits</li>
+            </ul>
+            <a class="button outline full" href="#selfhost">Read the docs</a>
+          </article>
+        </div>
+        <p class="price-fine reveal">Prices in USD. Pro is early access — features ship weekly. Taxes may apply at checkout.</p>
+      </section>
+
+      <section class="section faq" id="faq">
+        <div class="section-head reveal">
+          <span class="kicker">Questions</span>
+          <h2>Reasonable things to ask.</h2>
+        </div>
+        <div class="faq-list">
+          <details class="reveal">
+            <summary>Is it really open source?</summary>
+            <p>Yes. Apache-2.0 for the whole platform, including prompts and the whiteboard bridge. You can read every line, fork it, and run it without us.</p>
+          </details>
+          <details class="reveal">
+            <summary>How does it join my meeting?</summary>
+            <p>Two ways: the desktop app captures your mic and system audio locally — no bot in the room. Or you can send a bot to Zoom, Meet, Teams or Jitsi, depending on your setup.</p>
+          </details>
+          <details class="reveal">
+            <summary>What does Pro actually add?</summary>
+            <p>Cloud models for better notes and live suggestions, a shared real-time board, and searchable history. The free app keeps local transcription and local notes.</p>
+          </details>
+          <details class="reveal">
+            <summary>Where does my audio go?</summary>
+            <p>Transcription is local by default. If you use Pro, transcript text goes to our API and the model provider. Self-hosting keeps everything in your network.</p>
+          </details>
+          <details class="reveal">
+            <summary>Can I cancel?</summary>
+            <p>Yes, from your PayPal subscription page, any time. Access runs to the end of the paid period.</p>
+          </details>
+          <details class="reveal">
+            <summary>Why should I pay if I can self-host?</summary>
+            <p>Because you would rather not run servers, manage model keys and babysit upgrades. Pro is the same software, operated for you, with the good models.</p>
+          </details>
+        </div>
+      </section>
+
+      <section class="cta">
+        <div class="cta-inner reveal">
+          <h2>Your next meeting could<br />write itself.</h2>
+          <p>Start free. Upgrade when the AI earns it.</p>
+          <div class="hero-actions center">
+            <a class="button" href="#pricing">Start free</a>
+            <a class="button outline" href="https://github.com/AbdullahUsayeed/talksketch.work" target="_blank" rel="noreferrer">Star on GitHub</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-top">
+        <a class="brand" href="/"><img src="/assets/logo.svg" alt="TalkSketch" width="140" height="35" /></a>
+        <nav aria-label="Footer">
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#opensource">Open source</a>
+          <a href="#faq">FAQ</a>
+          <a href="mailto:hello@talksketch.work">hello@talksketch.work</a>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <span>© <span id="year">2026</span> TalkSketch. Apache-2.0.</span>
+        <span class="footer-note">Built for people who hate writing minutes.</span>
+      </div>
+    </footer>
+
+    <script src="/assets/app.js" defer></script>
+    <script src="https://www.paypal.com/sdk/js?client-id=BAANDJCsIHrwEYmUZmUq431cZOt72NvWQ7w2YMuWQ2YVETfdtd1rnhK8u9vHfHBivpfg6kk1qcnNO8E0jU&vault=true&intent=subscription" defer></script>
+  </body>
+</html>

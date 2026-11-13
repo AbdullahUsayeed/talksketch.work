@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>You're in — TalkSketch</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/styles.css" />
+    <style>
+      .thanks { min-height: 100vh; display: grid; place-items: center; padding: 24px; position: relative; z-index: 1; }
+      .thanks-card {
+        max-width: 560px; width: 100%; background: var(--white); border: 1px solid var(--line);
+        border-radius: 22px; padding: clamp(28px, 5vw, 46px); box-shadow: var(--shadow); text-align: center;
+      }
+      .thanks-card h1 { font-size: clamp(32px, 5vw, 46px); margin: 18px 0 12px; }
+      .thanks-card p { color: var(--muted); margin: 0 0 18px; }
+      .thanks-card .id { font: 12px ui-monospace, monospace; color: var(--muted); background: var(--paper-2); padding: 8px 10px; border-radius: 8px; word-break: break-all; }
+      .thanks-card .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 22px; }
+    </style>
+  </head>
+  <body>
+    <main class="thanks">
+      <div class="thanks-card">
+        <img src="/assets/logo.svg" alt="TalkSketch" width="170" height="42" style="margin:0 auto" />
+        <h1>You're in.</h1>
+        <p>
+          Your Pro subscription is active after the 7-day trial. We're finishing the desktop
+          build — you'll get the download link by email, and early-access pricing stays locked.
+        </p>
+        <p class="id" id="sub">Subscription confirmed</p>
+        <div class="actions">
+          <a class="button" href="/">Back to the site</a>
+          <a class="button outline" href="mailto:hello@talksketch.work">Email us</a>
+        </div>
+      </div>
+    </main>
+    <script>
+      const id = new URLSearchParams(location.search).get("subscription_id");
+      if (id) document.getElementById("sub").textContent = "Subscription " + id;
+    </script>
+  </body>
+</html>
