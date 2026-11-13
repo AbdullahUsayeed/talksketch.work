@@ -2,7 +2,7 @@
 
 Electron shell that captures **system audio + your microphone** and shows notes, actions and an
 **Excalidraw** board in a full-window panel. Short audio chunks go to the server for cloud
-speech-to-text (English and Bangla); the transcript goes to DeepSeek for notes. No local model,
+speech-to-text (any language); the transcript goes to DeepSeek for notes. No local model,
 no meeting integration, no server-side audio storage, no server-side canvas.
 
 ## Run
@@ -19,18 +19,43 @@ The renderer is served from `http://localhost:3345`; the panel from
 ## Audio and transcription
 
 **Start notes** captures system audio (everyone in the call) and your microphone through
-`getDisplayMedia` + `getUserMedia`. The app records 12-second chunks and sends them to
-`/v1/transcribe`, which calls the configured speech-to-text provider. Language is detected
-automatically (English and Bangla work today); audio is not stored, only the returned text.
+`getDisplayMedia` + `getUserMedia`. Audio is captured as **16 kHz PCM in an AudioWorklet**,
+cut into 6–20 second chunks **at pauses** (simple VAD, no fixed timer), encoded as WAV and sent
+to `/v1/transcribe`. Each chunk carries a sequence number and start time; results are inserted
+by index, not arrival order. A chunk that fails after retries becomes a visible
+`[missing chunk N]` segment so the notes model knows about the gap.
+
+Language is auto-detected by the provider (any language, including mixed speech); audio is not
+stored, only the returned text. WAV removes the WebM-header class of failures entirely.
 
 The provider is server-side configuration — `STT_PROVIDER` (`xai` or `openai`), `STT_BASE_URL`,
 `STT_API_KEY`, `STT_MODEL` — so it can be swapped without rebuilding the app. The shipped
-server uses xAI `/v1/stt`, which returns `{ text, language }` for each chunk.
+server uses xAI `/v1/stt`.
 
 The first start shows a consent disclosure: participants must be told an AI assistant is
 taking notes.
 
-Captions and manual Paste remain as fallbacks when audio sharing is unavailable.
+Paste remains as a fallback when audio sharing is unavailable.
+
+## Notes
+
+Notes are updated incrementally: every ~60 seconds (or after 6 new segments), the app sends the
+**current notes JSON** plus only the **new numbered segments** to `/v1/analyze`. The model
+returns the complete structured notes:
+
+`title`, `summary`, `topics[].points[]`, `decisions[]`, `action_items[]`,
+`open_questions[]`, `uncertain[]` — each carrying the segment numbers it came from.
+
+On **Stop**, the app sends the full transcript once and rebuilds the notes from scratch, which
+corrects drift from incremental updates. An invalid JSON answer is retried once; if it still
+fails, the previous notes stay intact.
+
+## Persistence
+
+Every transcribed segment is appended immediately to
+`%APPDATA%/TalkSketch/sessions/session-<timestamp>.jsonl`; final notes are written to
+`session-<timestamp>.notes.json`. **Settings → Open sessions** opens the folder. A crash loses
+nothing that was already transcribed.
 
 ## Build the Windows installer
 
@@ -56,8 +81,10 @@ it again. The installer is unsigned until a code-signing certificate is configur
 It works with any audio on the device — Meet, Zoom, Teams, WhatsApp, a YouTube video. There is
 no meeting URL and no bot; the app only listens while you are capturing.
 
-The app analyzes the last few minutes and applies board operations to the local Excalidraw
-scene. Nothing about the meeting is stored on the server.## Google sign-in
+The app applies board labels from the notes model to the local Excalidraw scene. Nothing about
+the meeting is stored on the server.
+
+## Google sign-in
 
 1. Google Cloud Console → **APIs & Services → Credentials → Create OAuth client ID → Web application**.
 2. Authorized redirect URI: `https://<your-server>/v1/auth/google/callback`.
@@ -88,11 +115,12 @@ build opens Meet in the system browser, so they return "No Google Meet page is o
 
 ## Limits
 
-- **Cloud transcription only.** English and Bangla are supported by the configured provider.
+- **Cloud transcription only.** The provider detects the language automatically; mixed speech is supported.
 - **Windows only for now.** The source builds on macOS and Linux, but only the Windows
   installer is produced.
 - **System audio capture** depends on the OS share picker and on the meeting playing sound on
   this device.
 - **Speaker labels are coarse:** remote participants appear as `Meeting`, you as `You`.
+- **Chunks cut at pauses:** 6–20 seconds; a chunk with no speech is discarded.
 - **Unsigned build.** SmartScreen warns on first run until a certificate is configured.
 - **MCP is unauthenticated on loopback.** Any local process can call it while the app runs.

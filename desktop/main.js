@@ -16,7 +16,13 @@ let mainWindow;
 function addCaption(line) {
   const text = String(line?.text ?? '').trim().slice(0, 1000);
   if (!text) return;
-  captions.push({ speaker: String(line?.speaker ?? 'Participant').slice(0, 80), text, ts: Date.now() });
+  captions.push({
+    speaker: String(line?.speaker ?? 'Participant').slice(0, 80),
+    text,
+    start: Number.isFinite(Number(line?.start)) ? Number(line.start) : 0,
+    seq: Number.isFinite(Number(line?.seq)) ? Number(line.seq) : 0,
+    ts: Date.now(),
+  });
   if (captions.length > 2000) captions.splice(0, captions.length - 2000);
 }
 
@@ -24,7 +30,8 @@ function transcriptText(seconds = 120) {
   const since = Date.now() - Math.max(5, seconds) * 1000;
   return captions
     .filter((line) => line.ts >= since)
-    .map((line) => `[${new Date(line.ts).toISOString().slice(11, 19)}] ${line.speaker}: ${line.text}`)
+    .sort((a, b) => a.start - b.start || a.seq - b.seq)
+    .map((line) => `[${line.start.toFixed(1)}s] ${line.speaker}: ${line.text}`)
     .join('\n');
 }
 
@@ -292,6 +299,43 @@ ipcMain.handle('open-external', async (_event, url) => {
     return true;
   }
   return false;
+});
+
+/* Sessions are append-only JSONL so a crash cannot lose the transcript. */
+const sessionsDir = path.join(app.getPath('userData'), 'sessions');
+
+ipcMain.handle('session-start', () => {
+  fs.mkdirSync(sessionsDir, { recursive: true });
+  return `session-${Date.now()}`;
+});
+
+ipcMain.on('session-append', (_event, payload) => {
+  const { id, entry } = payload ?? {};
+  if (typeof id !== 'string' || !/^session-\d+$/.test(id)) return;
+  try {
+    fs.appendFileSync(path.join(sessionsDir, `${id}.jsonl`), `${JSON.stringify(entry)}\n`, 'utf8');
+  } catch {
+    /* never block recording on disk errors */
+  }
+});
+
+ipcMain.on('session-notes', (_event, payload) => {
+  const { id, notes } = payload ?? {};
+  if (typeof id !== 'string' || !/^session-\d+$/.test(id)) return;
+  try {
+    fs.writeFileSync(
+      path.join(sessionsDir, `${id}.notes.json`),
+      JSON.stringify(notes, null, 2),
+      'utf8',
+    );
+  } catch {
+    /* ignore */
+  }
+});
+
+ipcMain.handle('open-sessions', async () => {
+  fs.mkdirSync(sessionsDir, { recursive: true });
+  return shell.openPath(sessionsDir);
 });
 
 app.whenReady().then(async () => {

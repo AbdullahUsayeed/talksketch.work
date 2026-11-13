@@ -24,10 +24,23 @@ const COLORS = {
   action: '#f08c00',
 };
 
+function Segments({ list }) {
+  if (!Array.isArray(list) || list.length === 0) return null;
+  return <span className="seg">[{list.join(', ')}]</span>;
+}
+
 export default function App() {
   const [tab, setTab] = useState(window.location.hash === '#board' ? 'board' : 'notes');
   const [api, setApi] = useState(null);
-  const [state, setState] = useState({ notes: [], actions: [], suggestions: [], summary: '' });
+  const [session, setSession] = useState({
+    title: '',
+    summary: '',
+    topics: [],
+    decisions: [],
+    action_items: [],
+    open_questions: [],
+    uncertain: [],
+  });
   const cursors = useRef({});
 
   const applyBoard = useCallback(
@@ -65,12 +78,17 @@ export default function App() {
       const data = event.data;
       if (!data || data.source !== 'talksketch') return;
       if (data.type === 'state') {
-        setState({
-          notes: data.notes ?? [],
-          actions: data.actions ?? [],
-          suggestions: data.suggestions ?? [],
-          summary: data.summary ?? '',
-        });
+        setSession(
+          data.session ?? {
+            title: '',
+            summary: '',
+            topics: [],
+            decisions: [],
+            action_items: [],
+            open_questions: [],
+            uncertain: [],
+          },
+        );
       }
       if (data.type === 'board') {
         if (data.clear) {
@@ -93,8 +111,13 @@ export default function App() {
         {TABS.map(([id, label]) => (
           <button key={id} className={`tab ${tab === id ? 'active' : ''}`} onClick={() => setTab(id)}>
             {label}
-            {id === 'notes' && state.notes.length > 0 ? <span>{state.notes.length}</span> : null}
-            {id === 'actions' && state.actions.length > 0 ? <span>{state.actions.length}</span> : null}
+            {id === 'notes' &&
+            session.topics.reduce((count, topic) => count + topic.points.length, 0) > 0 ? (
+              <span>{session.topics.reduce((count, topic) => count + topic.points.length, 0)}</span>
+            ) : null}
+            {id === 'actions' && session.action_items.length > 0 ? (
+              <span>{session.action_items.length}</span>
+            ) : null}
           </button>
         ))}
       </div>
@@ -108,39 +131,84 @@ export default function App() {
         </div>
 
         <div className={`list ${tab === 'notes' ? 'active' : ''}`}>
-          {state.summary ? <p className="summary">{state.summary}</p> : null}
-          {state.notes.length === 0 ? (
+          {session.title ? <h2 className="session-title">{session.title}</h2> : null}
+          {session.summary ? <p className="summary">{session.summary}</p> : null}
+
+          {session.topics.map((topic, topicIndex) => (
+            <section className="topic" key={topicIndex}>
+              <h3>{topic.heading}</h3>
+              {topic.points.map((point, pointIndex) => (
+                <div className="item" key={pointIndex}>
+                  <p>
+                    {point.text} <Segments list={point.segments} />
+                  </p>
+                </div>
+              ))}
+            </section>
+          ))}
+
+          {session.decisions.length > 0 ? (
+            <>
+              <h3>Decisions</h3>
+              {session.decisions.map((decision, index) => (
+                <div className="item decision" key={index}>
+                  <p>
+                    {decision.text} <Segments list={decision.segments} />
+                  </p>
+                </div>
+              ))}
+            </>
+          ) : null}
+
+          {session.open_questions.length > 0 ? (
+            <>
+              <h3>Open questions</h3>
+              {session.open_questions.map((question, index) => (
+                <div className="item question" key={index}>
+                  <p>
+                    {question.text} <Segments list={question.segments} />
+                  </p>
+                </div>
+              ))}
+            </>
+          ) : null}
+
+          {session.uncertain.length > 0 ? (
+            <>
+              <h3>Verify</h3>
+              {session.uncertain.map((item, index) => (
+                <div className="item uncertain" key={index}>
+                  <p>
+                    {item.text} <Segments list={item.segments} />
+                  </p>
+                </div>
+              ))}
+            </>
+          ) : null}
+
+          {!session.title &&
+          !session.summary &&
+          session.topics.length === 0 &&
+          session.decisions.length === 0 &&
+          session.open_questions.length === 0 &&
+          session.uncertain.length === 0 ? (
             <p className="empty">Notes appear here once you start listening.</p>
-          ) : (
-            state.notes.map((note, index) => (
-              <div className="item" key={index}>
-                <p>{note.content}</p>
-              </div>
-            ))
-          )}
+          ) : null}
         </div>
 
         <div className={`list ${tab === 'actions' ? 'active' : ''}`}>
           <h3>Action items</h3>
-          {state.actions.length === 0 ? (
+          {session.action_items.length === 0 ? (
             <p className="empty">No action items yet.</p>
           ) : (
-            state.actions.map((action, index) => (
+            session.action_items.map((action, index) => (
               <div className="item action" key={index}>
-                <p>{action.task}</p>
-                <span>{[action.assignee, action.deadline].filter(Boolean).join(' · ')}</span>
-              </div>
-            ))
-          )}
-          <h3>Suggestions</h3>
-          {state.suggestions.length === 0 ? (
-            <p className="empty">No suggestions yet.</p>
-          ) : (
-            state.suggestions.map((suggestion, index) => (
-              <div className="item suggestion" key={index}>
-                <b>{suggestion.topic}</b>
-                <p>{suggestion.rationale}</p>
-                <p>{suggestion.suggestion}</p>
+                <p>
+                  {action.task} <Segments list={action.segments} />
+                </p>
+                <span>
+                  {[action.owner, action.deadline].filter(Boolean).join(' · ') || 'No owner yet'}
+                </span>
               </div>
             ))
           )}

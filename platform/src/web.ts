@@ -518,11 +518,13 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === 'POST' && url.pathname === '/v1/analyze') {
-      const body = JSON.parse(await readBody(req, 200_000)) as {
+      const body = JSON.parse(await readBody(req, 400_000)) as {
+        segments?: Array<{ seq?: number; speaker?: string; text?: string }>;
         transcript?: string;
+        currentNotes?: unknown;
         topic?: string;
         participants?: string[];
-        existingNotes?: string[];
+        mode?: string;
         code?: string;
       };
       const authHeader = req.headers.authorization;
@@ -547,12 +549,30 @@ const server = createServer(async (req, res) => {
         return json(res, 429, { error: 'Too many analyses. Try again in a while.' });
       }
       try {
+        const rawSegments: Array<{ seq?: number; speaker?: string; text?: string }> =
+          Array.isArray(body.segments)
+            ? body.segments
+            : String(body.transcript ?? '')
+                .split(/\r?\n/)
+                .filter(Boolean)
+                .map((line) => ({ speaker: 'Participant', text: line }));
+
+        const segments = rawSegments
+          .map((segment, index) => ({
+            seq: Number.isFinite(Number(segment.seq)) ? Number(segment.seq) : index + 1,
+            speaker: String(segment.speaker ?? 'Participant').slice(0, 80),
+            text: String(segment.text ?? '').trim().slice(0, 2000),
+          }))
+          .filter((segment) => segment.text.length > 0)
+          .slice(-400);
+
         const result = await analyzeWindow(
           {
-            transcript: body.transcript ?? '',
+            segments,
+            ...(body.currentNotes ? { currentNotes: body.currentNotes } : {}),
             ...(body.topic ? { topic: body.topic } : {}),
             participants: Array.isArray(body.participants) ? body.participants : [],
-            existingNotes: Array.isArray(body.existingNotes) ? body.existingNotes : [],
+            mode: body.mode === 'final' ? 'final' : 'incremental',
           },
           config,
         );

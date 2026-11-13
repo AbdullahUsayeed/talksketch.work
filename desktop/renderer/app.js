@@ -68,6 +68,10 @@ $("diagnostics").addEventListener("click", async () => {
   }
 });
 
+$("sessions").addEventListener("click", () => {
+  void window.talksketch?.openSessions?.();
+});
+
 /* ---------- panel bridge ---------- */
 const panel = $("panel");
 let panelReady = false;
@@ -85,7 +89,7 @@ window.addEventListener("message", (event) => {
 });
 
 function pushState() {
-  post("state", { notes, actions, suggestions, summary });
+  post("state", { session: sessionNotes });
 }
 
 panel.addEventListener("load", () => {
@@ -93,114 +97,47 @@ panel.addEventListener("load", () => {
   pushState();
 });
 
-/* ---------- captions ---------- */
+/* ---------- session state ---------- */
 let capturing = false;
-let drainTimer = null;
 let analyzeTimer = null;
 let captured = 0;
 let transcript = [];
-let notes = [];
-let actions = [];
-let suggestions = [];
-let summary = "";
-const seenNotes = new Set();
-const seenActions = new Set();
-const seenSuggestions = new Set();
+let sessionNotes = emptyNotes();
+let analyzing = false;
+let analyzedThrough = 0;
+let lastAnalyzeAt = 0;
+let chunkSeq = 0;
+let sessionId = "";
+const postedBoard = new Set();
 
-const INSTALL_OBSERVER = String.raw`(() => {
-  if (window.__tsObserver) return 'already';
-  window.__tsQueue = [];
-  const seen = new Set();
-  let scheduled = false;
-
-  const parse = () => {
-    const regions = [
-      ...document.querySelectorAll('[aria-live="polite"]'),
-      ...document.querySelectorAll('[role="region"][aria-label*="Captions" i]'),
-    ];
-    const fallback = document.querySelector('div[jsname="YSxPC"]');
-    if (fallback && !regions.includes(fallback)) regions.push(fallback);
-    if (!regions.length) regions.push(document.body);
-
-    for (const region of regions) {
-      const blocks = [...region.querySelectorAll('.iOzk7, .TBMuR, .a4cQT')];
-      const rows = blocks.length ? blocks : [...region.querySelectorAll(':scope > div')];
-      const list = rows.length ? rows : [region];
-      for (const row of list) {
-        const text = (row.innerText || '').trim();
-        if (!text || text.length > 2000) continue;
-        const lines = text.split('\n').map((s) => s.trim()).filter(Boolean);
-        let speaker = 'Participant';
-        let body = text;
-        if (lines.length > 1) {
-          speaker = lines[0].replace(/:$/, '');
-          body = lines.slice(1).join(' ');
-        } else {
-          const match = text.match(/^([^:]{1,40}):\s*(.+)$/);
-          if (match) { speaker = match[1].trim(); body = match[2].trim(); }
-        }
-        body = body.replace(/\s+/g, ' ').trim();
-        if (body.length < 3 || body.length > 600) continue;
-        const key = speaker + '|' + body;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        window.__tsQueue.push({ speaker, text: body });
-      }
-    }
-    if (window.__tsQueue.length > 120) window.__tsQueue.splice(0, window.__tsQueue.length - 120);
+function emptyNotes() {
+  return {
+    title: "",
+    summary: "",
+    topics: [],
+    decisions: [],
+    action_items: [],
+    open_questions: [],
+    uncertain: [],
   };
-
-  const schedule = () => {
-    if (scheduled) return;
-    scheduled = true;
-    setTimeout(() => { scheduled = false; parse(); }, 350);
-  };
-
-  const observer = new MutationObserver(schedule);
-  observer.observe(document.body, { subtree: true, childList: true, characterData: true });
-  window.__tsObserver = observer;
-  parse();
-  return 'installed';
-})()`;
-
-async function injectObserver() {
-  try {
-    return await $("meet").executeJavaScript(INSTALL_OBSERVER, true);
-  } catch (error) {
-    setStatus(`Could not attach to the meeting: ${error.message}`, true);
-    return "failed";
-  }
-}
-
-async function drain() {
-  if (!capturing) return;
-  try {
-    const lines = await $("meet").executeJavaScript("window.__tsQueue ? window.__tsQueue.splice(0) : []", true);
-    if (!Array.isArray(lines) || lines.length === 0) return;
-    for (const line of lines) {
-      window.talksketch?.line(line);
-      transcript.push(`${line.speaker}: ${line.text}`);
-      if (transcript.length > 2000) transcript.splice(0, transcript.length - 2000);
-      captured += 1;
-    }
-    $("captured").textContent = `${captured} lines captured`;
-    setStatus("Capturing captions · notes appear in the panel.");
-  } catch (error) {
-    setStatus(`Capture error: ${error.message}`, true);
-  }
 }
 
 /* ---------- stateless analysis ---------- */
 async function analyze(final = false) {
-  const text = transcript.join("\n").slice(-14000);
-  if (text.length < 60) return;
+  if (analyzing) return;
+  const pending = transcript.filter((segment) => segment.seq > analyzedThrough);
+  const source = final ? transcript : pending;
+  if (source.length === 0) return;
+
+  const snapshot = transcript.reduce((max, segment) => Math.max(max, segment.seq), 0);
+  analyzing = true;
 
   const base = settings.server.replace(/\/$/, "");
   const headers = { "content-type": "application/json" };
   if (sessionToken) headers.authorization = `Bearer ${sessionToken}`;
 
   try {
-    setStatus(final ? "Writing the final summary…" : "Analyzing the last few minutes…");
+    setStatus(final ? "Writing the final notes…" : "Updating notes…");
     const res = await fetch(`${base}/v1/analyze`, {
       method: "POST",
       headers,
@@ -208,62 +145,64 @@ async function analyze(final = false) {
         code: settings.code,
         topic: settings.topic,
         participants: settings.participants.split(",").map((s) => s.trim()).filter(Boolean),
-        transcript: text,
-        existingNotes: notes.map((note) => note.content),
+        mode: final ? "final" : "incremental",
+        segments: source.map((segment) => ({
+          seq: segment.seq,
+          speaker: segment.speaker,
+          text: segment.text,
+        })),
+        ...(final ? {} : { currentNotes: sessionNotes }),
       }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `Server ${res.status}`);
 
-    for (const note of data.notes ?? []) {
-      const key = note.content.toLowerCase().replace(/\s+/g, " ").slice(0, 120);
-      if (seenNotes.has(key)) continue;
-      seenNotes.add(key);
-      notes.push(note);
-    }
-    for (const action of data.actions ?? []) {
-      const key = String(action.task).toLowerCase().replace(/\s+/g, " ").slice(0, 120);
-      if (seenActions.has(key)) continue;
-      seenActions.add(key);
-      actions.push(action);
-    }
-    for (const suggestion of data.suggestions ?? []) {
-      const key = String(suggestion.topic).toLowerCase().slice(0, 80);
-      if (seenSuggestions.has(key) || suggestions.length >= 3) continue;
-      seenSuggestions.add(key);
-      suggestions.push(suggestion);
+    sessionNotes = {
+      title: String(data.title ?? ""),
+      summary: String(data.summary ?? ""),
+      topics: Array.isArray(data.topics) ? data.topics : [],
+      decisions: Array.isArray(data.decisions) ? data.decisions : [],
+      action_items: Array.isArray(data.action_items) ? data.action_items : [],
+      open_questions: Array.isArray(data.open_questions) ? data.open_questions : [],
+      uncertain: Array.isArray(data.uncertain) ? data.uncertain : [],
+    };
+
+    if (!final && Array.isArray(data.board) && data.board.length > 0) {
+      const fresh = data.board.filter((op) => op?.text && !postedBoard.has(op.text));
+      for (const op of fresh) postedBoard.add(op.text);
+      if (fresh.length > 0) post("board", { ops: fresh.slice(0, 4) });
     }
 
-    if (data.summary) summary = data.summary;
+    analyzedThrough = snapshot;
+    lastAnalyzeAt = Date.now();
     pushState();
-    if (Array.isArray(data.board) && data.board.length > 0) post("board", { ops: data.board });
-    setStatus(final ? "Done. Summary is in Notes." : "Up to date.");
+    if (final) window.talksketch?.sessionNotes?.(sessionId, sessionNotes);
+    setStatus(final ? "Done. Final notes are in Notes." : "Up to date.");
   } catch (error) {
-    setStatus(`Analysis failed: ${error.message}`, true);
+    setStatus(`Notes update failed: ${error.message}`, true);
     if (/trial/i.test(error.message)) void refreshEntitlement();
+  } finally {
+    analyzing = false;
   }
 }
 
 function reset() {
   transcript = [];
-  notes = [];
-  actions = [];
-  suggestions = [];
-  summary = "";
-  seenNotes.clear();
-  seenActions.clear();
-  seenSuggestions.clear();
+  sessionNotes = emptyNotes();
+  postedBoard.clear();
+  analyzedThrough = 0;
+  lastAnalyzeAt = 0;
+  chunkSeq = 0;
+  sessionId = "";
   post("board", { clear: true });
   pushState();
 }
 
 let audioTracks = [];
-let recorders = [];
+let captures = [];
 function stopTimers() {
   capturing = false;
-  if (drainTimer) clearInterval(drainTimer);
   if (analyzeTimer) clearInterval(analyzeTimer);
-  drainTimer = null;
   analyzeTimer = null;
 }
 
@@ -277,42 +216,192 @@ function toBase64(buffer) {
   return btoa(binary);
 }
 
-/**
- * MediaRecorder timeslices are not standalone files: only the first chunk has a
- * WebM header, so providers reject later chunks with 400. Record one complete
- * file per cycle instead: start -> stop after 12s -> transcribe -> start again.
- */
-function startRecorder(stream, speaker) {
-  if (!capturing) return;
-  if (!stream.getAudioTracks().some((track) => track.readyState === "live")) return;
-
-  const recorder = new MediaRecorder(stream, {
-    mimeType: "audio/webm;codecs=opus",
-    audioBitsPerSecond: 32000,
-  });
-  const chunks = [];
-
-  recorder.ondataavailable = (event) => {
-    if (event.data.size > 0) chunks.push(event.data);
+function encodeWav(samples, rate = 16000) {
+  const buffer = new ArrayBuffer(44 + samples.length * 2);
+  const view = new DataView(buffer);
+  const write = (offset, text) => {
+    for (let i = 0; i < text.length; i += 1) view.setUint8(offset + i, text.charCodeAt(i));
   };
-
-  let timer = null;
-  recorder.onstop = () => {
-    if (timer) clearTimeout(timer);
-    recorders = recorders.filter((item) => item !== recorder);
-    const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
-    if (blob.size > 1200) void transcribe(blob, speaker);
-    if (capturing) startRecorder(stream, speaker);
-  };
-
-  recorders.push(recorder);
-  recorder.start();
-  timer = setTimeout(() => {
-    if (recorder.state === "recording") recorder.stop();
-  }, 12000);
+  write(0, "RIFF");
+  view.setUint32(4, 36 + samples.length * 2, true);
+  write(8, "WAVE");
+  write(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, rate, true);
+  view.setUint32(28, rate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  write(36, "data");
+  view.setUint32(40, samples.length * 2, true);
+  for (let i = 0; i < samples.length; i += 1) {
+    const sample = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(44 + i * 2, sample * 0x7fff, true);
+  }
+  return new Blob([buffer], { type: "audio/wav" });
 }
 
-async function transcribe(blob, speaker, attempt = 1) {
+function resample(samples, from, to) {
+  if (from === to) return samples;
+  const ratio = from / to;
+  const out = new Float32Array(Math.floor(samples.length / ratio));
+  for (let i = 0; i < out.length; i += 1) {
+    const start = Math.floor(i * ratio);
+    const end = Math.min(samples.length, Math.floor((i + 1) * ratio));
+    let sum = 0;
+    for (let j = start; j < end; j += 1) sum += samples[j] ?? 0;
+    out[i] = end > start ? sum / (end - start) : 0;
+  }
+  return out;
+}
+
+const CHUNK_MIN_S = 6;
+const CHUNK_MAX_S = 20;
+const SILENCE_S = 0.7;
+const PREROLL_S = 0.35;
+const VAD_RMS = 0.006;
+
+/** Raw PCM via AudioWorklet; chunks are cut at pauses, not on a timer. */
+async function startPcmCapture(stream, speaker) {
+  let ctx;
+  try {
+    ctx = new AudioContext({ sampleRate: 16000 });
+  } catch {
+    ctx = new AudioContext();
+  }
+  const source = ctx.createMediaStreamSource(stream);
+  await ctx.audioWorklet.addModule("pcm-worklet.js");
+  const node = new AudioWorkletNode(ctx, "pcm-capture");
+  const sink = ctx.createGain();
+  sink.gain.value = 0;
+  source.connect(node);
+  node.connect(sink);
+  sink.connect(ctx.destination);
+
+  const rate = ctx.sampleRate;
+  let buffer = [];
+  let buffered = 0;
+  let pre = [];
+  let preSamples = 0;
+  let speech = false;
+  let silence = 0;
+  let cursor = 0;
+  let chunkStart = 0;
+  let stopped = false;
+
+  const resetBuffer = () => {
+    buffer = [];
+    buffered = 0;
+    pre = [];
+    preSamples = 0;
+    speech = false;
+    silence = 0;
+  };
+
+  const flush = () => {
+    if (!speech || buffered < rate * 0.5) {
+      resetBuffer();
+      return;
+    }
+    const merged = new Float32Array(buffered);
+    let offset = 0;
+    for (const frame of buffer) {
+      merged.set(frame, offset);
+      offset += frame.length;
+    }
+    const pcm = rate === 16000 ? merged : resample(merged, rate, 16000);
+    const seq = (chunkSeq += 1);
+    const start = chunkStart / rate;
+    void transcribe(encodeWav(pcm), { speaker, seq, start });
+    resetBuffer();
+  };
+
+  node.port.onmessage = (event) => {
+    if (stopped) return;
+    const frame = event.data;
+    let sum = 0;
+    for (let i = 0; i < frame.length; i += 1) sum += frame[i] * frame[i];
+    const rms = Math.sqrt(sum / frame.length);
+
+    if (!speech) {
+      pre.push(frame);
+      preSamples += frame.length;
+      while (pre.length > 1 && preSamples > rate * PREROLL_S) {
+        preSamples -= pre.shift().length;
+      }
+      if (rms >= VAD_RMS) {
+        speech = true;
+        buffer = pre.slice();
+        buffered = preSamples;
+        chunkStart = Math.max(0, cursor - preSamples);
+        pre = [];
+        preSamples = 0;
+        silence = 0;
+      }
+    } else {
+      buffer.push(frame);
+      buffered += frame.length;
+      silence = rms < VAD_RMS ? silence + frame.length : 0;
+      const duration = buffered / rate;
+      if (
+        (duration >= CHUNK_MIN_S && silence >= rate * SILENCE_S) ||
+        duration >= CHUNK_MAX_S
+      ) {
+        flush();
+      }
+    }
+    cursor += frame.length;
+  };
+
+  const capture = {
+    stop() {
+      if (stopped) return;
+      flush();
+      stopped = true;
+      node.port.onmessage = null;
+      try {
+        source.disconnect();
+        node.disconnect();
+        sink.disconnect();
+      } catch {
+        /* already gone */
+      }
+      ctx.close().catch(() => undefined);
+    },
+  };
+  captures.push(capture);
+  return capture;
+}
+
+function addSegment(meta, text, missing = false) {
+  const segment = {
+    seq: meta.seq,
+    start: meta.start,
+    speaker: meta.speaker,
+    text,
+    ...(missing ? { missing: true } : {}),
+  };
+  const existing = transcript.find((item) => item.seq === meta.seq);
+  if (existing) {
+    Object.assign(existing, segment);
+  } else {
+    transcript.push(segment);
+    captured += 1;
+    $("captured").textContent = `${captured} segments`;
+    window.talksketch?.sessionAppend?.(sessionId, segment);
+  }
+  transcript.sort((a, b) => a.start - b.start || a.seq - b.seq);
+  window.talksketch?.line({
+    speaker: meta.speaker,
+    text,
+    start: meta.start,
+    seq: meta.seq,
+  });
+}
+
+async function transcribe(blob, meta, attempt = 1) {
+  const { speaker, seq } = meta;
   try {
     const base64 = toBase64(await blob.arrayBuffer());
     const headers = { "content-type": "application/json" };
@@ -323,30 +412,26 @@ async function transcribe(blob, speaker, attempt = 1) {
       body: JSON.stringify({
         code: settings.code,
         audio: base64,
-        mime: blob.type || "audio/webm",
+        mime: "audio/wav",
       }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `Server ${res.status}`);
     const text = String(data.text ?? "").trim();
     if (text.length < 2) return;
-    const line = `${speaker}: ${text}`;
-    if (transcript[transcript.length - 1] === line) return;
-    transcript.push(line);
-    window.talksketch?.line({ speaker, text });
-    captured += 1;
-    $("captured").textContent = `${captured} audio chunks`;
+    addSegment(meta, text);
     setStatus(`Listening · ${speaker}: ${text.slice(0, 70)}`);
   } catch (error) {
     const message = error.message || "Network error";
     const retryable =
       attempt < 3 && !/trial|sign in|401|402|not configured/i.test(message);
     if (retryable) {
-      setStatus(`Transcription hiccup — retrying (${attempt}/3)…`);
+      setStatus(`Transcription hiccup — retrying chunk ${seq} (${attempt}/3)…`);
       await new Promise((resolve) => setTimeout(resolve, 800 * attempt));
-      return transcribe(blob, speaker, attempt + 1);
+      return transcribe(blob, meta, attempt + 1);
     }
-    setStatus(`Transcription failed: ${message}`, true);
+    addSegment(meta, `[missing chunk ${seq}]`, true);
+    setStatus(`Chunk ${seq} failed after retries — marked as missing.`, true);
     if (/trial/i.test(message)) void refreshEntitlement();
   }
 }
@@ -363,9 +448,11 @@ async function startAudio() {
   });
   const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
   audioTracks = [...display.getTracks(), ...mic.getTracks()];
-  recorders = [];
-  startRecorder(new MediaStream([system]), "Meeting");
-  startRecorder(mic, "You");
+  captures = [];
+  await Promise.all([
+    startPcmCapture(new MediaStream([system]), "Meeting"),
+    startPcmCapture(mic, "You"),
+  ]);
 }
 
 async function startCapture() {
@@ -390,14 +477,14 @@ function stopCapture() {
 }
 
 function stopAudio() {
-  for (const recorder of recorders) {
+  for (const capture of captures) {
     try {
-      recorder.stop();
+      capture.stop();
     } catch {
       /* already stopped */
     }
   }
-  recorders = [];
+  captures = [];
   for (const track of audioTracks) {
     try {
       track.stop();
@@ -406,6 +493,14 @@ function stopAudio() {
     }
   }
   audioTracks = [];
+}
+
+function maybeAnalyze() {
+  if (!capturing || analyzing) return;
+  const pending = transcript.filter((segment) => segment.seq > analyzedThrough);
+  if (pending.length === 0) return;
+  if (lastAnalyzeAt && Date.now() - lastAnalyzeAt < 60000 && pending.length < 6) return;
+  void analyze(false);
 }
 
 $("start").addEventListener("click", async () => {
@@ -423,15 +518,16 @@ $("start").addEventListener("click", async () => {
   $("start").disabled = true;
   setStatus("Starting…");
   reset();
+  sessionId = (await window.talksketch?.sessionStart?.()) || "";
   capturing = true;
   captured = 0;
-  $("captured").textContent = "0 lines captured";
+  $("captured").textContent = "0 segments";
   $("stop").hidden = false;
 
   try {
     const mode = await startCapture();
     if (mode) {
-      setStatus("Listening to meeting audio with cloud transcription (English / বাংলা).");
+      setStatus("Listening. Chunks are cut at pauses and transcribed in the cloud.");
     } else {
       setStatus("Audio unavailable. Allow screen/audio sharing, or use Paste.", true);
     }
@@ -441,13 +537,12 @@ $("start").addEventListener("click", async () => {
     return;
   }
 
-  analyzeTimer = setInterval(() => analyze(false), 20000);
-  setTimeout(() => analyze(false), 5000);
+  analyzeTimer = setInterval(maybeAnalyze, 10000);
   setTimeout(() => {
     if (capturing && captured === 0) {
-      setStatus("No audio detected — check the meeting output device, or use Paste.", true);
+      setStatus("No audio detected — check the output device, or use Paste.", true);
     }
-  }, 25000);
+  }, 30000);
 });
 
 $("stop").addEventListener("click", async () => {
@@ -455,7 +550,11 @@ $("stop").addEventListener("click", async () => {
   stopCapture();
   $("stop").hidden = true;
   $("start").disabled = false;
-  await new Promise((resolve) => setTimeout(resolve, 2500));
+  setStatus("Finishing transcription…");
+  await new Promise((resolve) => setTimeout(resolve, 3500));
+  for (let i = 0; i < 40 && analyzing; i += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
   await analyze(true);
 });
 
@@ -642,11 +741,10 @@ $("paste-add").addEventListener("click", async () => {
     const match = line.match(/^([^:]{1,40}):\s*(.+)$/);
     const speaker = match ? match[1].trim() : "Participant";
     const text = match ? match[2].trim() : line;
-    transcript.push(`${speaker}: ${text}`);
-    window.talksketch?.line({ speaker, text });
-    captured += 1;
+    const start = transcript.reduce((max, segment) => Math.max(max, segment.start), 0) + 1;
+    const seq = (chunkSeq += 1);
+    addSegment({ speaker, seq, start }, text);
   }
-  $("captured").textContent = `${captured} lines captured`;
   $("paste-text").value = "";
   $("paste-modal").hidden = true;
   await analyze(false);
