@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 176 40" fill="none" role="img" aria-label="TalkSketch">
+  <path d="M4 8.5C4 6 6 4 8.5 4h23c2.5 0 4.5 2 4.5 4.5v16c0 2.5-2 4.5-4.5 4.5H17l-8 5.5V29H8.5C6 29 4 27 4 24.5v-16Z" fill="#14130f"/>
+  <path d="M12 14h16M12 19.5h9" stroke="#f6f2e9" stroke-width="2.4" stroke-linecap="round"/>
+  <text x="46" y="27.5" font-family="Bricolage Grotesque, Inter, sans-serif" font-size="22" font-weight="800" letter-spacing="-0.7" fill="#14130f">talksketch</text>
+</svg>

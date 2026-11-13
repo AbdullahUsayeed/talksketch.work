@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TalkSketch — live notes</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <a class="brand" href="https://talksketch.work"><img src="assets/logo.svg" alt="TalkSketch" width="160" height="36" /></a>
+      <span class="pill"><span class="dot" id="live-dot"></span><span id="live-label">Idle</span></span>
+      <span class="pill small" id="clock">00:00</span>
+      <a class="back" href="/">Transcript demo →</a>
+    </header>
+
+    <main class="wrap">
+      <section class="intro">
+        <p class="kicker">Live meeting</p>
+        <h1>Notes while<br /><em>you talk.</em></h1>
+        <p class="lede">
+          Join Google Meet, turn on captions, and start capture in the TalkSketch extension.
+          Notes, decisions and actions land here every few seconds.
+        </p>
+      </section>
+
+      <section class="live-grid">
+        <aside class="card">
+          <h2 class="panel-title">Capture</h2>
+          <p class="muted small">
+            The extension streams Meet captions to this page. No audio leaves the browser.
+          </p>
+          <form id="start-form" class="form">
+            <label>Access code<input id="code" placeholder="TALKSKETCH" autocomplete="off" required /></label>
+            <label>Topic<input id="topic" placeholder="Family meeting" /></label>
+            <label>Participants<input id="participants" placeholder="Sarah, Tom" /></label>
+            <button class="button" type="submit" id="start">Start session</button>
+          </form>
+
+          <hr class="rule" />
+
+          <h2 class="panel-title">Fallback</h2>
+          <p class="muted small">No captions? Paste lines here — one per line, <b>Name: text</b>.</p>
+          <form id="paste-form" class="form">
+            <textarea id="paste" rows="6" placeholder="Sarah: Let's start with the budget.&#10;Tom: We are 12% over on travel."></textarea>
+            <button class="button outline" type="submit">Send lines</button>
+          </form>
+
+          <hr class="rule" />
+
+          <a class="board-link" href="http://127.0.0.1:3000" target="_blank" rel="noreferrer">
+            Open the whiteboard ↗
+          </a>
+          <button class="button danger" id="end" type="button" hidden>End meeting</button>
+          <p class="fine" id="notice"></p>
+        </aside>
+
+        <section class="card">
+          <div class="live-status">
+            <div>
+              <p class="kicker">Live record</p>
+              <h2 id="meeting-topic">Waiting for a meeting</h2>
+            </div>
+            <span class="pill small" id="segments">0 lines</span>
+          </div>
+
+          <p class="muted" id="hint">Start a session and enable captions in Meet. Notes appear here.</p>
+
+          <div class="live-block">
+            <h3>Notes <span id="notes-count">0</span></h3>
+            <div id="notes"><p class="muted">No notes yet.</p></div>
+          </div>
+          <div class="live-block">
+            <h3>Suggestions <span id="suggestions-count">0</span></h3>
+            <div id="suggestions"><p class="muted">No suggestions yet.</p></div>
+          </div>
+          <div class="live-block">
+            <h3>Action items <span id="actions-count">0</span></h3>
+            <div id="actions"><p class="muted">No action items yet.</p></div>
+          </div>
+          <div class="summary-block" id="summary-block" hidden>
+            <h3>Summary</h3>
+            <p id="summary"></p>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="live.js" defer></script>
+  </body>
+</html>

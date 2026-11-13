@@ -11,3 +11,9 @@ desktop/panel/node_modules/
 desktop/panel-dist/
 desktop/release/
 desktop/whisper-runtime/
+platform/node_modules/
+platform/dist/
+platform/data/
+platform/data-demo/
+platform/backups/
+platform/.env

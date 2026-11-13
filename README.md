@@ -24,6 +24,14 @@ Pushes to `main` deploy through `.github/workflows/pages.yml`. In the repo setti
    - `CNAME` for `www`: `abdullausayeed.github.io`
 4. Enable **Enforce HTTPS** once the certificate is issued.
 
+## Software
+
+- **Desktop app (Electron + local Whisper + Excalidraw):** [`desktop/`](desktop/)
+- **Self-hosted platform (Vexa-compatible transcript API, stateless AI, demo, extension):** [`platform/`](platform/)
+
+The site is static; the app is a Windows installer; the platform is Docker/Node and can be
+self-hosted with your own model key.
+
 ## Billing
 
 The Pro button is a live PayPal subscription:

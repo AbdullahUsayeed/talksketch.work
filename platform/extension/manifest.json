@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "TalkSketch Capture",
+  "version": "0.1.0",
+  "description": "Stream Google Meet captions into a local TalkSketch live session.",
+  "permissions": ["storage", "tabs", "scripting"],
+  "host_permissions": [
+    "https://meet.google.com/*",
+    "http://localhost:8788/*",
+    "http://127.0.0.1:8788/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "TalkSketch Capture"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://meet.google.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
