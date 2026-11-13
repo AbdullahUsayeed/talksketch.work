@@ -614,6 +614,16 @@ async function openUpgrade() {
   $("upgrade-modal").hidden = false;
   const base = settings.server.replace(/\/$/, "");
 
+  if (!paypalClientId) {
+    try {
+      const config = await fetch(`${base}/v1/config`).then((res) => res.json());
+      if (config.paypalClientId) paypalClientId = config.paypalClientId;
+      if (config.planId) planId = config.planId;
+    } catch {
+      /* report below */
+    }
+  }
+
   if (!sessionEmail) {
     $("upgrade-error").textContent = "Sign in with Google to upgrade.";
     return;

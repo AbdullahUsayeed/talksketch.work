@@ -101,10 +101,15 @@ the meeting is stored on the server.
 
 ## Trial and billing
 
-- The trial starts on first Google sign-in and lasts `TRIAL_DAYS` (default 3).
-- After it ends, AI endpoints return `402` and the app points at **Upgrade**.
-- **Upgrade** renders PayPal Buttons for `PAYPAL_PLAN_ID` and calls
-  `/v1/billing/activate`; PayPal webhooks flip the entitlement on cancellation or expiry.
+- The trial starts on first Google sign-in and lasts `TRIAL_DAYS` (default 3). No card is required.
+- The first sign-in shows a **3-day trial** notice; the header keeps a **Trial · Nd** badge and an
+  **Upgrade — $12/mo** button.
+- After it expires, AI endpoints return `402`, the badge shows **Trial ended**, and the upgrade
+  prompt reopens.
+- **Upgrade** renders PayPal Buttons in-app for `PAYPAL_PLAN_ID` (a no-trial plan, since the app
+  already gave 3 days) and calls `/v1/billing/activate` with the subscription ID. PayPal webhooks
+  flip the entitlement on cancellation or expiry.
+- The website no longer sells subscriptions; it only links to the installer.
 
 ## Local MCP
 
