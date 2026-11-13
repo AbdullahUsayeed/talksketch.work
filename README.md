@@ -36,7 +36,7 @@ self-hosted with your own model key.
 
 The Pro button is a live PayPal subscription:
 
-- Plan: `P-6YB06036H1886744ENL3HT5A`
+- Plan: `P-9E290320FG523503DNL3OJ2Y` (3-day trial, then $12/month)
 - 3-day free trial, then **$12/month USD**
 - Product: `PROD-06C413632R371032G`
 
