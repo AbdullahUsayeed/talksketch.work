@@ -614,14 +614,12 @@ async function openUpgrade() {
   $("upgrade-modal").hidden = false;
   const base = settings.server.replace(/\/$/, "");
 
-  if (!paypalClientId || !sessionEmail) {
-    if (planId) {
-      window.talksketch?.openExternal(
-        `https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=${encodeURIComponent(planId)}`,
-      );
-    } else {
-      $("upgrade-error").textContent = "Billing is not configured on this server.";
-    }
+  if (!sessionEmail) {
+    $("upgrade-error").textContent = "Sign in with Google to upgrade.";
+    return;
+  }
+  if (!paypalClientId) {
+    $("upgrade-error").textContent = "Billing is not configured on this server.";
     return;
   }
 
@@ -675,22 +673,66 @@ async function refreshEntitlement() {
     if (data.email) sessionEmail = data.email;
     if (data.planId) planId = data.planId;
     if (typeof data.trialDays === "number") trialDays = data.trialDays;
+
+    const badge = $("trial-badge");
     if (data.status === "trial") {
       $("upgrade").hidden = false;
+      badge.hidden = false;
+      badge.classList.remove("expired");
+      badge.textContent = `Trial · ${data.daysLeft}d`;
       setStatus(`Trial: ${data.daysLeft} day${data.daysLeft === 1 ? "" : "s"} left.`);
+      if (!localStorage.getItem(trialNoticeKey()) && $("trial-modal").hidden) {
+        showTrialNotice(data.daysLeft);
+      }
     } else if (data.status === "expired") {
       $("upgrade").hidden = false;
+      badge.hidden = false;
+      badge.classList.add("expired");
+      badge.textContent = "Trial ended";
       setStatus("Trial ended. Subscribe to continue.", true);
+      if (!localStorage.getItem(trialNoticeKey()) && $("trial-modal").hidden) {
+        showTrialNotice(0);
+      }
     } else if (data.status === "active") {
       $("upgrade").hidden = true;
+      badge.hidden = true;
+      $("trial-modal").hidden = true;
       setStatus("Pro is active.");
     } else {
       $("upgrade").hidden = true;
+      badge.hidden = true;
     }
   } catch {
     /* keep the current status */
   }
 }
+
+function trialNoticeKey() {
+  return `ts_trial_notice_${sessionEmail || "anon"}`;
+}
+
+function showTrialNotice(daysLeft) {
+  const expired = daysLeft <= 0;
+  $("trial-title").textContent = expired
+    ? "Your trial has ended"
+    : `Your ${trialDays}-day trial is active`;
+  $("trial-copy").textContent = expired
+    ? "Subscribe to keep transcription, notes and the board running. $12/month, cancel anytime."
+    : `You have ${daysLeft} day${daysLeft === 1 ? "" : "s"} left with full access. No card required. Upgrade anytime for $12/month.`;
+  $("trial-later").textContent = expired ? "Not now" : "Keep using the trial";
+  $("trial-modal").hidden = false;
+}
+
+$("trial-later").addEventListener("click", () => {
+  localStorage.setItem(trialNoticeKey(), "1");
+  $("trial-modal").hidden = true;
+});
+
+$("trial-upgrade").addEventListener("click", () => {
+  localStorage.setItem(trialNoticeKey(), "1");
+  $("trial-modal").hidden = true;
+  void openUpgrade();
+});
 
 async function startGoogleSignIn() {
   const state = crypto.randomUUID();

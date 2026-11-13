@@ -22,6 +22,13 @@ body {
   font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
   color: #8b949e; border: 1px solid #2a3240; border-radius: 999px; padding: 2px 7px;
 }
+.trial-pill {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em;
+  color: #ffd43b; background: #2b2413; border: 1px solid #4a3a12;
+  border-radius: 999px; padding: 4px 9px; white-space: nowrap;
+}
+.trial-pill.expired { color: #ff8a6f; background: #2b1612; border-color: #4a231a; }
+.trial-points { margin: 0 0 14px; padding-left: 18px; color: #c9d1d9; font-size: 12.5px; line-height: 1.6; }
 .address { flex: 1; display: flex; gap: 6px; min-width: 0; }
 .address input {
   flex: 1; min-width: 0;

@@ -1,4 +1,3 @@
-const PLAN_ID = "P-9E290320FG523503DNL3OJ2Y";
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /* year */
@@ -95,55 +94,3 @@ if (typed) {
   }
 }
 
-/* PayPal subscription */
-const paypalHost = document.getElementById("paypal-button-container");
-const fallback = document.getElementById("paypal-fallback");
-const note = document.getElementById("paypal-note");
-
-function showFallback() {
-  if (paypalHost) paypalHost.hidden = true;
-  if (note) note.textContent = "Secure subscription via PayPal · 3 days free, then $12/month";
-  if (fallback) {
-    fallback.hidden = false;
-    fallback.addEventListener("click", () => {
-      window.location.href =
-        "https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=" +
-        encodeURIComponent(PLAN_ID);
-    });
-  }
-}
-
-function initPayPal() {
-  try {
-    window.paypal
-      .Buttons({
-        style: { shape: "pill", color: "gold", layout: "vertical", label: "subscribe_now", height: 48 },
-        createSubscription: (_data, actions) =>
-          actions.subscription.create({ plan_id: PLAN_ID }),
-        onApprove: (data) => {
-          window.location.href =
-            "welcome.html?subscription_id=" + encodeURIComponent(data.subscriptionID || "");
-        },
-        onError: () => {
-          if (note) note.textContent = "PayPal could not start checkout. Please try again.";
-        }
-      })
-      .render("#paypal-button-container");
-  } catch {
-    showFallback();
-  }
-}
-
-function waitForPayPal(attempt = 0) {
-  if (window.paypal) {
-    initPayPal();
-    return;
-  }
-  if (attempt >= 24) {
-    showFallback();
-    return;
-  }
-  window.setTimeout(() => waitForPayPal(attempt + 1), 300);
-}
-
-window.addEventListener("load", () => waitForPayPal());

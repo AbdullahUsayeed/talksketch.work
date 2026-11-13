@@ -17,7 +17,8 @@
 
       <div class="actions">
         <div id="google-signin"></div>
-        <button id="upgrade" class="ghost" hidden>Upgrade</button>
+        <span id="trial-badge" class="trial-pill" hidden>Trial</span>
+        <button id="upgrade" class="ghost" hidden>Upgrade — $12/mo</button>
         <button id="paste-toggle" class="ghost">Paste</button>
         <button id="settings-toggle" class="ghost">Settings</button>
         <button id="start" class="primary">Start notes</button>
@@ -32,7 +33,7 @@
       <label>Participants<input id="participants" placeholder="Sarah, Tom" /></label>
       <p class="hint">
         Start captures this device's audio + your mic and sends short chunks to the server for
-        cloud transcription (English and Bangla). YouTube, Zoom, WhatsApp — anything playing here.
+        cloud transcription (any language). YouTube, Zoom, WhatsApp — anything playing here.
         Audio is not stored. Paste is the fallback. Local MCP:
         <code>http://127.0.0.1:3333/mcp</code>.
       </p>
@@ -50,6 +51,24 @@
       <span id="status">Ready. Press Start notes to listen to this device.</span>
       <span id="captured">0 segments</span>
     </footer>
+
+    <div class="modal" id="trial-modal" hidden>
+      <div class="modal-card">
+        <h3 id="trial-title">Your 3-day trial is active</h3>
+        <p class="modal-hint" id="trial-copy">
+          You have full access for 3 days. No card required. Upgrade anytime for $12/month.
+        </p>
+        <ul class="trial-points">
+          <li>Transcription, notes and the board for 3 days</li>
+          <li>No card required to start</li>
+          <li>Cancel anytime in PayPal</li>
+        </ul>
+        <div class="modal-actions">
+          <button id="trial-later" class="ghost" type="button">Keep using the trial</button>
+          <button id="trial-upgrade" class="primary" type="button">Upgrade — $12/month</button>
+        </div>
+      </div>
+    </div>
 
     <div class="modal" id="consent-modal" hidden>
       <div class="modal-card">

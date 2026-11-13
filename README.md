@@ -40,18 +40,18 @@ self-hosted with your own model key.
 
 ## Billing
 
-The Pro button is a live PayPal subscription:
+Checkout lives in the desktop app, not the site:
 
-- Plan: `P-9E290320FG523503DNL3OJ2Y` (3-day trial, then $12/month)
-- 3-day free trial, then **$12/month USD**
-- Product: `PROD-06C413632R371032G`
+- The 3-day trial starts on the first Google sign-in. No card required.
+- **Upgrade — $12/mo** opens PayPal Checkout inside the app and activates the account
+  immediately. Plan: `P-0ET25800HC594571SNL3ONGY` (no trial, $12/month).
+- The server verifies the subscription via `/v1/billing/activate`; PayPal webhooks handle
+  cancellation, suspension and expiry.
+- The site has no subscription button — it only links to the installer.
 
-The plan ID lives in `assets/app.js` and is public by design. The PayPal **secret** is
-never used in this repo — it belongs in the backend that verifies webhooks and issues
-entitlements. If a secret is ever pasted into a chat or committed, rotate it in the
+The plan ID and PayPal client ID are served by `/v1/config`; the PayPal **secret** never
+leaves the server. If a secret is ever pasted into a chat or committed, rotate it in the
 PayPal dashboard.
-
-To change the price, create a new plan (PayPal plans are immutable) and replace `PLAN_ID`.
 
 ## Structure
 
