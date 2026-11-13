@@ -288,7 +288,7 @@ function makeRecorder(stream, speaker) {
   return recorder;
 }
 
-async function transcribe(blob, speaker) {
+async function transcribe(blob, speaker, attempt = 1) {
   try {
     const base64 = toBase64(await blob.arrayBuffer());
     const headers = { "content-type": "application/json" };
@@ -306,14 +306,24 @@ async function transcribe(blob, speaker) {
     if (!res.ok) throw new Error(data.error || `Server ${res.status}`);
     const text = String(data.text ?? "").trim();
     if (text.length < 2) return;
-    transcript.push(`${speaker}: ${text}`);
+    const line = `${speaker}: ${text}`;
+    if (transcript[transcript.length - 1] === line) return;
+    transcript.push(line);
     window.talksketch?.line({ speaker, text });
     captured += 1;
     $("captured").textContent = `${captured} audio chunks`;
     setStatus(`Listening · ${speaker}: ${text.slice(0, 70)}`);
   } catch (error) {
-    setStatus(`Transcription failed: ${error.message}`, true);
-    if (/trial/i.test(error.message)) void refreshEntitlement();
+    const message = error.message || "Network error";
+    const retryable =
+      attempt < 3 && !/trial|sign in|401|402|not configured/i.test(message);
+    if (retryable) {
+      setStatus(`Transcription hiccup — retrying (${attempt}/3)…`);
+      await new Promise((resolve) => setTimeout(resolve, 800 * attempt));
+      return transcribe(blob, speaker, attempt + 1);
+    }
+    setStatus(`Transcription failed: ${message}`, true);
+    if (/trial/i.test(message)) void refreshEntitlement();
   }
 }
 

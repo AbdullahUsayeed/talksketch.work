@@ -111,6 +111,50 @@ function allowTranscribe(ip: string, limit = 2000): boolean {
   return true;
 }
 
+/* Keep bursts (two speakers uploading at once) from tripping the provider. */
+const STT_MAX_INFLIGHT = 3;
+let sttInFlight = 0;
+const sttWaiters: Array<() => void> = [];
+
+async function acquireSttSlot(): Promise<void> {
+  if (sttInFlight < STT_MAX_INFLIGHT) {
+    sttInFlight += 1;
+    return;
+  }
+  await new Promise<void>((resolve) => sttWaiters.push(resolve));
+  sttInFlight += 1;
+}
+
+function releaseSttSlot(): void {
+  sttInFlight = Math.max(0, sttInFlight - 1);
+  const next = sttWaiters.shift();
+  if (next) next();
+}
+
+/** Retry transient provider failures and cap each attempt at 25s. */
+async function sttFetch(url: string, init: RequestInit): Promise<Response> {
+  const retryable = new Set([408, 425, 429, 500, 502, 503, 504]);
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await fetch(url, { ...init, signal: AbortSignal.timeout(25_000) });
+      if (response.ok || !retryable.has(response.status) || attempt === 3) return response;
+      logger.warn('stt retry', { status: response.status, attempt });
+    } catch (error) {
+      lastError = error;
+      if (attempt === 3) throw error;
+      logger.warn('stt retry', {
+        error: error instanceof Error ? error.message : String(error),
+        attempt,
+      });
+    }
+    await new Promise((resolve) =>
+      setTimeout(resolve, 300 * attempt + Math.floor(Math.random() * 250)),
+    );
+  }
+  throw lastError instanceof Error ? lastError : new Error('Transcription provider unavailable.');
+}
+
 function allowAnalyze(ip: string, limit = 600): boolean {
   const now = Date.now();
   const entry = analyzeUsage.get(ip);
@@ -567,6 +611,7 @@ const server = createServer(async (req, res) => {
       if (audio.length < 1000) return json(res, 400, { error: 'Audio chunk is too small.' });
       if (audio.length > 8_000_000) return json(res, 413, { error: 'Audio chunk is too large.' });
 
+      await acquireSttSlot();
       try {
         const form = new FormData();
         form.append(
@@ -578,7 +623,7 @@ const server = createServer(async (req, res) => {
 
         if (config.stt.provider === 'xai') {
           if (language) form.append('language', language);
-          const response = await fetch(`${config.stt.baseUrl}/stt`, {
+          const response = await sttFetch(`${config.stt.baseUrl}/stt`, {
             method: 'POST',
             headers: { authorization: `Bearer ${config.stt.apiKey}` },
             body: form,
@@ -598,7 +643,7 @@ const server = createServer(async (req, res) => {
         form.append('model', config.stt.model);
         form.append('response_format', 'json');
         if (language) form.append('language', language);
-        const response = await fetch(`${config.stt.baseUrl}/audio/transcriptions`, {
+        const response = await sttFetch(`${config.stt.baseUrl}/audio/transcriptions`, {
           method: 'POST',
           headers: { authorization: `Bearer ${config.stt.apiKey}` },
           body: form,
@@ -609,9 +654,14 @@ const server = createServer(async (req, res) => {
         const data = (await response.json()) as { text?: string };
         return json(res, 200, { text: (data.text ?? '').trim() });
       } catch (error) {
+        logger.warn('transcription failed', {
+          error: error instanceof Error ? error.message : String(error),
+        });
         return json(res, 502, {
           error: error instanceof Error ? error.message : 'Transcription failed.',
         });
+      } finally {
+        releaseSttSlot();
       }
     }
 
