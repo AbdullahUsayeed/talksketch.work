@@ -1,0 +1,45 @@
+{
+  "name": "talksketch-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TalkSketch desktop — Meet + live AI notes",
+  "author": "TalkSketch",
+  "license": "Apache-2.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis portable",
+    "dir": "electron-builder --win --dir"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "work.talksketch.desktop",
+    "productName": "TalkSketch",
+    "copyright": "Copyright © 2026 TalkSketch",
+    "asar": true,
+    "files": [
+      "main.js",
+      "renderer/**",
+      "build/icon.png"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "TalkSketch"
+    },
+    "electronDist": "node_modules/electron/dist"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  }
+}

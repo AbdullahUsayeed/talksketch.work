@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TalkSketch</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="mark">✳</span>
+        <span class="name">TalkSketch</span>
+        <span class="tag">desktop preview</span>
+      </div>
+
+      <div class="address">
+        <input id="url" value="https://meet.google.com/" spellcheck="false" />
+        <button id="open" class="ghost">Open</button>
+      </div>
+
+      <div class="actions">
+        <button id="settings-toggle" class="ghost">Settings</button>
+        <button id="start" class="primary">Start notes</button>
+        <button id="stop" class="danger" hidden>Stop</button>
+      </div>
+    </header>
+
+    <section class="settings" id="settings" hidden>
+      <label>Server<input id="server" value="http://54.255.181.218" /></label>
+      <label>Access code<input id="code" value="TALKSKETCH" /></label>
+      <label>Topic<input id="topic" value="Family meeting" /></label>
+      <label>Participants<input id="participants" placeholder="Sarah, Tom" /></label>
+      <p class="hint">Run the server with <code>npm run demo</code>, or use the hosted demo address above.</p>
+    </section>
+
+    <main class="split">
+      <div class="pane meet">
+        <webview
+          id="meet"
+          src="https://meet.google.com/"
+          partition="persist:meet"
+          allowpopups
+          useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+        ></webview>
+      </div>
+      <div class="pane notes">
+        <iframe id="notes" src="http://54.255.181.218/live" title="Live notes"></iframe>
+      </div>
+    </main>
+
+    <footer class="status">
+      <span id="status">Ready. Join a Meet, turn on captions, then start notes.</span>
+      <span id="captured">0 lines captured</span>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
