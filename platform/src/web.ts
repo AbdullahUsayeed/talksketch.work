@@ -149,6 +149,13 @@ function authorized(code: string | undefined): boolean {
   if (value === config.demo.code.toUpperCase()) return true;
   return config.demo.keys.some((key) => key.toUpperCase() === value);
 }
+
+/** Pilot/admin keys only — the public demo code must never unlock paid audio. */
+function authorizedKey(code: string | undefined): boolean {
+  const value = (code ?? '').trim().toUpperCase();
+  if (!value) return false;
+  return config.demo.keys.some((key) => key.toUpperCase() === value);
+}
 const ipUsage = new Map<string, { count: number; resetAt: number }>();
 
 function allowIp(ip: string): boolean {
@@ -530,6 +537,7 @@ const server = createServer(async (req, res) => {
         audio?: string;
         mime?: string;
         code?: string;
+        language?: string;
       };
       const authHeader = req.headers.authorization;
       const bearer =
@@ -537,7 +545,7 @@ const server = createServer(async (req, res) => {
           ? authHeader.slice(7)
           : undefined;
       const session = bearer ? verifySession(bearer, config.auth.sessionSecret) : null;
-      if (!session && !authorized(body.code)) {
+      if (!session && !authorizedKey(body.code)) {
         return json(res, 401, { error: 'Sign in with Google or provide an access key.' });
       }
       if (session) {
@@ -566,8 +574,30 @@ const server = createServer(async (req, res) => {
           new Blob([new Uint8Array(audio)], { type: body.mime || 'audio/webm' }),
           'chunk.webm',
         );
+        const language = body.language && body.language !== 'auto' ? body.language : undefined;
+
+        if (config.stt.provider === 'xai') {
+          if (language) form.append('language', language);
+          const response = await fetch(`${config.stt.baseUrl}/stt`, {
+            method: 'POST',
+            headers: { authorization: `Bearer ${config.stt.apiKey}` },
+            body: form,
+          });
+          if (!response.ok) {
+            return json(res, 502, {
+              error: `Transcription provider responded ${response.status}`,
+            });
+          }
+          const data = (await response.json()) as { text?: string; language?: string };
+          return json(res, 200, {
+            text: (data.text ?? '').trim(),
+            language: data.language ?? null,
+          });
+        }
+
         form.append('model', config.stt.model);
         form.append('response_format', 'json');
+        if (language) form.append('language', language);
         const response = await fetch(`${config.stt.baseUrl}/audio/transcriptions`, {
           method: 'POST',
           headers: { authorization: `Bearer ${config.stt.apiKey}` },

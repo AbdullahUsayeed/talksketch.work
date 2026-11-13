@@ -66,7 +66,9 @@ node dist/web.js          # http://localhost:8788
   `PUBLIC_BASE_URL`, `TRIAL_DAYS`. Without Google, access keys still work.
 - **Billing:** `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_PLAN_ID`,
   `PAYPAL_WEBHOOK_ID`, `PAYPAL_API_BASE`.
-- **Cloud STT fallback:** `STT_API_KEY` (OpenAI-compatible transcription endpoint).
+- **Speech-to-text:** `STT_PROVIDER` (`xai` or `openai`), `STT_API_KEY`, `STT_BASE_URL`,
+  `STT_MODEL`. xAI `/v1/stt` auto-detects English and Bangla; OpenAI uses
+  `/audio/transcriptions`.
 
 Google Cloud → Credentials → OAuth client (Web application) → authorized redirect URI:
 `${PUBLIC_BASE_URL}/v1/auth/google/callback`.

@@ -64,7 +64,8 @@ const EnvSchema = z.object({
   PAYPAL_WEBHOOK_ID: z.string().optional(),
   PAYPAL_API_BASE: z.string().url().default('https://api-m.paypal.com'),
 
-  // Speech-to-text for native audio capture (OpenAI-compatible)
+  // Speech-to-text. `openai` = /audio/transcriptions, `xai` = /stt.
+  STT_PROVIDER: z.enum(['openai', 'xai']).default('openai'),
   STT_API_KEY: z.string().optional(),
   STT_BASE_URL: z.string().url().default('https://api.openai.com/v1'),
   STT_MODEL: z.string().default('whisper-1'),
@@ -130,6 +131,7 @@ export interface Config {
     apiBase: string;
   };
   stt: {
+    provider: 'openai' | 'xai';
     apiKey?: string;
     baseUrl: string;
     model: string;
@@ -218,6 +220,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       apiBase: value.PAYPAL_API_BASE.replace(/\/$/, ''),
     },
     stt: {
+      provider: value.STT_PROVIDER,
       ...(value.STT_API_KEY ? { apiKey: value.STT_API_KEY } : {}),
       baseUrl: value.STT_BASE_URL.replace(/\/$/, ''),
       model: value.STT_MODEL,

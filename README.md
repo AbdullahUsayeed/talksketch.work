@@ -26,7 +26,7 @@ Pushes to `main` deploy through `.github/workflows/pages.yml`. In the repo setti
 
 ## Software
 
-- **Desktop app (Electron + local Whisper + Excalidraw):** [`desktop/`](desktop/)
+- **Desktop app (Electron + cloud transcription + Excalidraw):** [`desktop/`](desktop/)
 - **Self-hosted platform (Vexa-compatible transcript API, stateless AI, demo, extension):** [`platform/`](platform/)
 
 The site is static; the app is a Windows installer; the platform is Node and can be
@@ -34,7 +34,7 @@ self-hosted with your own model key.
 
 ## Download
 
-- Windows installer (~209 MB, includes the local Whisper model):
+- Windows installer (~86 MB):
   <https://54.255.181.218.sslip.io/download/TalkSketch-Setup-0.1.0.exe>
 - The installer is currently unsigned, so Windows SmartScreen warns on first run.
 
@@ -65,7 +65,7 @@ assets/styles.css     design system + animations
 assets/app.js         nav, reveals, typewriter, PayPal
 assets/logo.svg       wordmark
 assets/og.svg         social card
-desktop/              Electron app (capture, local Whisper, Excalidraw)
+desktop/              Electron app (capture, cloud transcription, Excalidraw)
 platform/             self-hostable backend (auth, trials, billing, AI call)
 ```
 

@@ -12,7 +12,7 @@
       <div class="brand">
         <img class="mark" src="logo.svg" alt="" width="24" height="24" />
         <span class="name">TalkSketch</span>
-        <span class="tag">desktop preview</span>
+        <span class="tag">beta</span>
       </div>
 
       <div class="actions">
@@ -31,8 +31,9 @@
       <label>Topic<input id="topic" value="Family meeting" /></label>
       <label>Participants<input id="participants" placeholder="Sarah, Tom" /></label>
       <p class="hint">
-        Start captures system audio + mic. Whisper runs locally; if the runtime is missing it falls
-        back to cloud STT. Captions and Paste are fallbacks. Local MCP:
+        Start captures system audio + mic and sends short chunks to the server for cloud
+        transcription (English and Bangla). Audio is not stored. Captions and Paste are fallbacks.
+        Local MCP:
         <code>http://127.0.0.1:3333/mcp</code>.
       </p>
       <button id="diagnostics" class="ghost" type="button">Copy diagnostics</button>
@@ -77,8 +78,9 @@
       <div class="modal-card">
         <h3>Before you start</h3>
         <p class="modal-hint">
-          TalkSketch captures <b>system audio and your microphone</b>, transcribes it (on this device
-          when local Whisper is available), and sends the transcript to an AI provider to write notes.
+          TalkSketch captures <b>system audio and your microphone</b>, sends short audio chunks to
+          a speech-to-text service for transcription, and sends the transcript to an AI provider
+          to write notes.
         </p>
         <p class="modal-hint">
           You must tell everyone in the call that an AI assistant is taking notes. Do not use this

@@ -42,13 +42,7 @@
       "allowToChangeInstallationDirectory": true,
       "shortcutName": "TalkSketch"
     },
-    "electronDist": "node_modules/electron/dist",
-    "extraResources": [
-      {
-        "from": "whisper-runtime",
-        "to": "whisper"
-      }
-    ]
+    "electronDist": "node_modules/electron/dist"
   },
   "allowScripts": {
     "electron@33.4.11": true

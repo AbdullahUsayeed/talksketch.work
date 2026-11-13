@@ -75,6 +75,11 @@ export async function analyzeWindow(input: AnalyzeWindowInput, config: Config): 
             '- At most 4 board items, each under 12 words.',
             '- Do not repeat anything in the existing notes.',
             '- summary is 1-2 sentences describing this window; empty if nothing happened.',
+            '',
+            'Language:',
+            '- The transcript may be English, Bangla (Bengali script), Banglish (Bangla in Latin letters), or a mix. Understand it as spoken.',
+            '- Write summary, notes, actions, suggestions and board text in the language most of the transcript uses. If the meeting is in Bangla, write in Bangla with proper Bengali script.',
+            '- Keep people names, company names, numbers and established English technical terms as they were said. Do not translate proper nouns.',
           ].join('\n'),
         },
         {

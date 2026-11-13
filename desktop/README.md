@@ -1,9 +1,9 @@
 # TalkSketch Desktop
 
 Electron shell that opens the meeting in your real browser, captures **system audio + your
-microphone**, transcribes locally with whisper.cpp, and shows notes, actions and an
-**Excalidraw** board. The server is used for Google sign-in, entitlements, and one stateless
-AI call per analysis window. No sessions, no server-side audio, no server-side canvas.
+microphone**, and shows notes, actions and an **Excalidraw** board. Short audio chunks go to
+the server for cloud speech-to-text (English and Bangla); the transcript goes to DeepSeek for
+notes. No local model, no server-side audio storage, no server-side canvas.
 
 ## Run
 
@@ -19,33 +19,18 @@ The renderer is served from `http://localhost:3345`; the panel from
 ## Audio and transcription
 
 **Start notes** captures system audio (everyone in the call) and your microphone through
-`getDisplayMedia` + `getUserMedia`. If the bundled whisper.cpp runtime is present,
-transcription runs on the device with `ggml-base.en.bin`; audio never leaves the machine.
-If the runtime is missing, the app falls back to the server's `/v1/transcribe` endpoint.
-Captions and manual Paste are the second fallbacks.
+`getDisplayMedia` + `getUserMedia`. The app records 12-second chunks and sends them to
+`/v1/transcribe`, which calls the configured speech-to-text provider. Language is detected
+automatically (English and Bangla work today); audio is not stored, only the returned text.
+
+The provider is server-side configuration — `STT_PROVIDER` (`xai` or `openai`), `STT_BASE_URL`,
+`STT_API_KEY`, `STT_MODEL` — so it can be swapped without rebuilding the app. The shipped
+server uses xAI `/v1/stt`, which returns `{ text, language }` for each chunk.
 
 The first start shows a consent disclosure: participants must be told an AI assistant is
 taking notes.
 
-### Bundle the local runtime (needed for the installer)
-
-Create `whisper-runtime/` next to this README:
-
-```
-whisper-runtime/
-├── whisper-cli.exe
-├── whisper.dll
-├── ggml.dll
-├── ggml-base.dll
-├── ggml-cpu-*.dll
-└── models/ggml-base.en.bin
-```
-
-- Binaries: <https://github.com/ggml-org/whisper.cpp/releases/download/b5454/whisper-bin-x64.zip>
-- Model: <https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin> (~141 MB)
-
-`extraResources` copies it into the installed app. The installer is ~209 MB as a result.
-Without it the app still runs, using cloud STT when the server has `STT_API_KEY` set.
+Captions and manual Paste remain as fallbacks when audio sharing is unavailable.
 
 ## Build the Windows installer
 
@@ -104,11 +89,11 @@ build opens Meet in the system browser, so they return "No Google Meet page is o
 
 ## Limits
 
+- **Cloud transcription only.** English and Bangla are supported by the configured provider.
 - **Windows only for now.** The source builds on macOS and Linux, but only the Windows
   installer is produced.
 - **System audio capture** depends on the OS share picker and on the meeting playing sound on
   this device.
 - **Speaker labels are coarse:** remote participants appear as `Meeting`, you as `You`.
-- **Whisper `base.en`** trades accuracy for size; `small.en` improves names and numbers.
 - **Unsigned build.** SmartScreen warns on first run until a certificate is configured.
 - **MCP is unauthenticated on loopback.** Any local process can call it while the app runs.

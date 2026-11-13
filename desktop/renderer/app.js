@@ -65,7 +65,7 @@ $("diagnostics").addEventListener("click", async () => {
     `server: ${settings.server}`,
     `signedIn: ${Boolean(sessionToken)}`,
     `email: ${sessionEmail || "n/a"}`,
-    `localWhisper: ${window.talksketch ? await window.talksketch.hasLocalStt() : "n/a"}`,
+    `transcription: cloud STT (auto: en/bn)`,
     `trialDays: ${trialDays}`,
     `planId: ${planId || "n/a"}`,
     `lastError: ${lastError || "none"}`,
@@ -266,12 +266,8 @@ function reset() {
   pushState();
 }
 
-let audioMode = false;
 let audioTracks = [];
 let recorders = [];
-let localStt = false;
-let localCaptures = [];
-
 function stopTimers() {
   capturing = false;
   if (drainTimer) clearInterval(drainTimer);
@@ -349,102 +345,7 @@ async function startAudio() {
   recorders.forEach((recorder) => recorder.start(12000));
 }
 
-function createPcmCapture(stream, speaker) {
-  const ctx = new AudioContext();
-  const source = ctx.createMediaStreamSource(stream);
-  const processor = ctx.createScriptProcessor(4096, 1, 1);
-  const gain = ctx.createGain();
-  gain.gain.value = 0;
-
-  let chunks = [];
-  let total = 0;
-  const target = 16000;
-
-  const flush = (force = false) => {
-    if (total === 0) return;
-    if (!force && total < target * 8) return;
-    const merged = new Int16Array(total);
-    let offset = 0;
-    for (const chunk of chunks) {
-      merged.set(chunk, offset);
-      offset += chunk.length;
-    }
-    chunks = [];
-    total = 0;
-    window.talksketch?.audioChunk({ speaker, pcm: merged.buffer });
-  };
-
-  processor.onaudioprocess = (event) => {
-    const input = event.inputBuffer.getChannelData(0);
-    const ratio = ctx.sampleRate / target;
-    const length = Math.floor(input.length / ratio);
-    const out = new Int16Array(length);
-    for (let i = 0; i < length; i += 1) {
-      const start = Math.floor(i * ratio);
-      const end = Math.min(input.length, Math.floor((i + 1) * ratio));
-      let sum = 0;
-      for (let j = start; j < end; j += 1) sum += input[j] ?? 0;
-      const sample = end > start ? sum / (end - start) : 0;
-      out[i] = Math.max(-1, Math.min(1, sample)) * 0x7fff;
-    }
-    chunks.push(out);
-    total += length;
-    if (total >= target * 8) flush();
-  };
-
-  source.connect(processor);
-  processor.connect(gain);
-  gain.connect(ctx.destination);
-  return { ctx, source, processor, gain, flush };
-}
-
-async function startLocalAudio() {
-  const display = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-  const system = display.getAudioTracks()[0];
-  if (!system) {
-    display.getTracks().forEach((track) => track.stop());
-    throw new Error("No system audio track was shared.");
-  }
-  display.getVideoTracks().forEach((track) => {
-    track.enabled = false;
-  });
-  const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
-  audioTracks = [...display.getTracks(), ...mic.getTracks()];
-  localCaptures = [
-    createPcmCapture(new MediaStream([system]), "Meeting"),
-    createPcmCapture(mic, "You"),
-  ];
-}
-
-function stopLocalAudio() {
-  for (const capture of localCaptures) {
-    try {
-      capture.flush(true);
-    } catch {
-      /* ignore */
-    }
-    try {
-      capture.processor.disconnect();
-      capture.source.disconnect();
-      capture.gain.disconnect();
-    } catch {
-      /* ignore */
-    }
-    capture.ctx.close().catch(() => undefined);
-  }
-  localCaptures = [];
-}
-
 async function startCapture() {
-  const localAvailable = await (window.talksketch?.hasLocalStt?.() ?? Promise.resolve(false));
-  if (localAvailable) {
-    try {
-      await startLocalAudio();
-      return "local";
-    } catch {
-      /* fall through to cloud, then captions */
-    }
-  }
   try {
     await startAudio();
     return "cloud";
@@ -454,8 +355,7 @@ async function startCapture() {
 }
 
 function stopCapture() {
-  if (audioMode === "local") stopLocalAudio();
-  else stopAudio();
+  stopAudio();
   for (const track of audioTracks) {
     try {
       track.stop();
@@ -508,14 +408,8 @@ $("start").addEventListener("click", async () => {
   try {
     const mode = await startCapture();
     if (mode) {
-      audioMode = mode;
-      setStatus(
-        mode === "local"
-          ? "Listening locally with Whisper — audio stays on this device."
-          : "Listening to meeting audio (cloud transcription).",
-      );
+      setStatus("Listening to meeting audio with cloud transcription (English / বাংলা).");
     } else {
-      audioMode = false;
       setStatus("Audio unavailable. Allow screen/audio sharing, or use Paste.", true);
     }
   } catch (error) {
@@ -528,14 +422,7 @@ $("start").addEventListener("click", async () => {
   setTimeout(() => analyze(false), 5000);
   setTimeout(() => {
     if (capturing && captured === 0) {
-      setStatus(
-        audioMode === "local"
-          ? "No audio detected — check the meeting output device."
-          : audioMode === "cloud"
-            ? "No audio detected — check the meeting output device."
-            : "No captions detected — use Paste or audio.",
-        true,
-      );
+      setStatus("No audio detected — check the meeting output device, or use Paste.", true);
     }
   }, 25000);
 });
@@ -712,21 +599,6 @@ async function startGoogleSignIn() {
 
 setupGoogle();
 if (sessionToken) void refreshEntitlement();
-
-/* ---------- local whisper transcripts ---------- */
-if (window.talksketch?.onTranscript) {
-  window.talksketch.onTranscript(({ speaker, text, error }) => {
-    if (!text) {
-      if (error) setStatus(`Local transcription: ${error}`, true);
-      return;
-    }
-    transcript.push(`${speaker}: ${text}`);
-    window.talksketch?.line({ speaker, text });
-    captured += 1;
-    $("captured").textContent = `${captured} audio chunks`;
-    setStatus(`Listening · ${speaker}: ${text.slice(0, 70)}`);
-  });
-}
 
 /* ---------- caption fallback ---------- */
 $("paste-toggle").addEventListener("click", () => {

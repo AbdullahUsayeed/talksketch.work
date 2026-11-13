@@ -29,7 +29,7 @@
 
       <h2>What we collect</h2>
       <ul>
-        <li><b>Meeting content.</b> Transcript text, speaker labels, notes, action items and whiteboard elements. Audio is captured locally and handled as described under <b>Audio</b> below.</li>
+        <li><b>Meeting content.</b> Transcript text, speaker labels, notes, action items and whiteboard elements.</li>
         <li><b>Account data.</b> Email address, subscription status, and the access code or token used to sign in.</li>
         <li><b>Payment data.</b> Handled by PayPal. We receive a subscription identifier and status, never your card number.</li>
         <li><b>Technical data.</b> IP address, request time, and error logs, used for rate limiting and debugging.</li>
@@ -37,9 +37,9 @@
 
       <p>
         <b>Audio.</b> When you start a meeting, the desktop app captures system audio and your
-        microphone. If the bundled Whisper runtime is available, transcription happens on your
-        device and audio never leaves it. If it is missing, short audio chunks are sent to a
-        speech-to-text provider instead. Audio chunks are not stored after transcription.
+        microphone, then sends short chunks to a speech-to-text provider. The provider returns text;
+        we do not store the audio, and it is not used to train models. Transcript text is what
+        reaches the model that writes your notes.
       </p>
 
       <h2>Why we process it</h2>

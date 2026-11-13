@@ -286,115 +286,6 @@ function createWindow() {
 
 ipcMain.on('caption', (_event, line) => addCaption(line));
 
-function whisperPaths() {
-  const root = app.isPackaged
-    ? path.join(process.resourcesPath, 'whisper')
-    : path.join(__dirname, 'whisper-runtime');
-  return {
-    root,
-    cli: path.join(root, 'whisper-cli.exe'),
-    model: path.join(root, 'models', 'ggml-base.en.bin'),
-  };
-}
-
-function writeWav(file, pcm) {
-  const data = Buffer.isBuffer(pcm) ? pcm : Buffer.from(pcm);
-  const header = Buffer.alloc(44);
-  header.write('RIFF', 0);
-  header.writeUInt32LE(36 + data.length, 4);
-  header.write('WAVE', 8);
-  header.write('fmt ', 12);
-  header.writeUInt32LE(16, 16);
-  header.writeUInt16LE(1, 20);
-  header.writeUInt16LE(1, 22);
-  header.writeUInt32LE(16000, 24);
-  header.writeUInt32LE(32000, 28);
-  header.writeUInt16LE(2, 32);
-  header.writeUInt16LE(16, 34);
-  header.write('data', 36);
-  header.writeUInt32LE(data.length, 40);
-  fs.writeFileSync(file, Buffer.concat([header, data]));
-}
-
-function parseWhisper(output) {
-  return output
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .filter(
-      (line) =>
-        !line.startsWith('whisper_') &&
-        !line.startsWith('system_info') &&
-        !line.startsWith('ggml_') &&
-        !line.startsWith('load_') &&
-        !line.startsWith('main:') &&
-        !line.startsWith('error') &&
-        !line.startsWith('warning'),
-    )
-    .join(' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-let sttQueue = Promise.resolve();
-
-function enqueueStt(sender, payload) {
-  sttQueue = sttQueue
-    .then(() => runLocalStt(sender, payload))
-    .catch((error) => console.error('[whisper]', error));
-}
-
-async function runLocalStt(sender, payload) {
-  const { speaker, pcm } = payload ?? {};
-  if (!pcm) return;
-  const buffer = Buffer.from(pcm);
-  if (buffer.length < 32000) return;
-
-  const { root, cli, model } = whisperPaths();
-  if (!fs.existsSync(cli) || !fs.existsSync(model)) {
-    sender.send('transcript', { speaker, error: 'Local Whisper runtime is missing.' });
-    return;
-  }
-
-  const tmp = path.join(app.getPath('temp'), `talksketch-${randomUUID()}.wav`);
-  writeWav(tmp, buffer);
-
-  await new Promise((resolve) => {
-    const child = spawn(cli, ['-m', model, '-f', tmp, '-nt', '-l', 'en', '-t', '4'], {
-      cwd: root,
-      windowsHide: true,
-    });
-    let out = '';
-    let err = '';
-    child.stdout.on('data', (chunk) => {
-      out += chunk;
-    });
-    child.stderr.on('data', (chunk) => {
-      err += chunk;
-    });
-    child.on('error', (error) => {
-      fs.unlink(tmp, () => undefined);
-      sender.send('transcript', { speaker, error: error.message });
-      resolve();
-    });
-    child.on('close', () => {
-      fs.unlink(tmp, () => undefined);
-      const text = parseWhisper(out);
-      sender.send('transcript', {
-        speaker,
-        text,
-        ...(text ? {} : { error: err.slice(-200) || 'No speech detected.' }),
-      });
-      resolve();
-    });
-  });
-}
-
-ipcMain.handle('local-stt', () => {
-  const { cli, model } = whisperPaths();
-  return fs.existsSync(cli) && fs.existsSync(model);
-});
-
 ipcMain.handle('open-external', async (_event, url) => {
   if (typeof url === 'string' && url.startsWith('https://')) {
     await shell.openExternal(url);
@@ -402,8 +293,6 @@ ipcMain.handle('open-external', async (_event, url) => {
   }
   return false;
 });
-
-ipcMain.on('audio-chunk', (event, payload) => enqueueStt(event.sender, payload));
 
 app.whenReady().then(async () => {
   allowMedia(session.defaultSession);
