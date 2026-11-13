@@ -1,7 +1,7 @@
 # talksketch.work
 
 Landing page for **TalkSketch** - an AI meeting partner with live notes, decisions
-and a shared whiteboard. Static HTML/CSS/JS, no build step, deployed to
+and a local whiteboard. Static HTML/CSS/JS, no build step, deployed to
 GitHub Pages.
 
 ## Local

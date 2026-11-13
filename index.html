@@ -18,7 +18,7 @@
     <meta property="og:title" content="TalkSketch — the meeting that writes itself" />
     <meta
       property="og:description"
-      content="Live notes, decisions and a whiteboard that draws itself. Open source, self-hostable, $12/month for cloud AI."
+      content="Live notes, decisions and a whiteboard that fills itself. Open source, self-hostable, $12/month for cloud AI."
     />
     <meta property="og:image" content="https://talksketch.work/assets/og.png" />
     <meta property="og:image:width" content="1200" />
@@ -41,7 +41,7 @@
         "name": "TalkSketch",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Windows, macOS, Linux",
-        "description": "AI meeting partner with live notes, decisions and a shared whiteboard.",
+        "description": "AI meeting partner with live notes, decisions and a local whiteboard.",
         "offers": [
           { "@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free" },
           { "@type": "Offer", "price": "12", "priceCurrency": "USD", "name": "Pro" }
@@ -84,8 +84,8 @@
           <div class="eyebrow"><span class="pulse"></span> Open source · Early access</div>
           <h1>Meetings that<br /><em>think in ink.</em></h1>
           <p class="lede">
-            TalkSketch sits in your call, writes the notes, flags what everyone missed,
-            and sketches the whiteboard — while you talk.
+            TalkSketch listens to your meeting, keeps the notes, flags what is uncertain,
+            and fills the board — without joining the call.
           </p>
           <div class="hero-actions">
             <a class="button" href="#pricing">Get Pro</a>
@@ -93,9 +93,9 @@
             <a class="button outline" href="https://54.255.181.218.sslip.io/" target="_blank" rel="noreferrer">Try the demo</a>
           </div>
           <ul class="hero-points">
-            <li>Works with Zoom, Meet and Teams</li>
-            <li>Cloud transcription, no bot required</li>
-            <li>Self-host the whole thing</li>
+            <li>Zoom, Meet, Teams, WhatsApp or YouTube</li>
+            <li>Any language, auto-detected</li>
+            <li>No bot, no meeting link</li>
           </ul>
         </div>
 
@@ -149,7 +149,7 @@
               </div>
             </div>
           </div>
-          <div class="float-badge badge-a">notes in 2s</div>
+          <div class="float-badge badge-a">notes in a minute</div>
           <div class="float-badge badge-b">0 bots in the room</div>
         </div>
       </section>
@@ -179,7 +179,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 4h14v13H9l-4 3V4Z"/><path d="M9 8h6M9 12h4"/></svg>
             </div>
             <h3>Notes with a spine</h3>
-            <p>Decisions, numbers, owners and risks — one tight note every minute, never a wall of text.</p>
+            <p>Decisions, owners, deadlines and open questions — updated every minute, each point linked to the segment it came from.</p>
           </article>
 
           <article class="feature reveal" data-delay="40">
@@ -194,8 +194,8 @@
             <div class="icon blue">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></svg>
             </div>
-            <h3>A board that draws itself</h3>
-            <p>Agenda, key points, decisions and conclusions appear on a live Excalidraw canvas everyone can edit.</p>
+            <h3>A board that fills itself</h3>
+            <p>Agenda, key points, decisions and actions land as short labels on a local Excalidraw canvas you can edit.</p>
           </article>
 
           <article class="feature reveal" data-delay="0">
@@ -210,16 +210,16 @@
             <div class="icon ink">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
             </div>
-            <h3>No bot required</h3>
-            <p>Capture mic and system audio on your desktop. Or send a bot when you want one. Your call.</p>
+            <h3>Any app, any language</h3>
+            <p>Meet, Zoom, Teams, WhatsApp or a YouTube lecture — if it plays on your laptop, it listens. Language is auto-detected.</p>
           </article>
 
           <article class="feature reveal" data-delay="80">
             <div class="icon coral">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l7 3v5c0 4.4-3 7.9-7 10-4-2.1-7-5.6-7-10V6l7-3Z"/><path d="M9 12l2 2 4-4"/></svg>
             </div>
-            <h3>Private by default</h3>
-            <p>Transcription runs on your machine. Cloud AI is opt-in, and self-hosting means nothing leaves your network.</p>
+            <h3>Audio isn't kept</h3>
+            <p>Chunks are transcribed and discarded. Sessions stay on your own disk, and self-hosting keeps everything in your network.</p>
           </article>
         </div>
       </section>
@@ -227,7 +227,7 @@
       <section class="section split" id="how">
         <div class="split-copy reveal">
           <span class="kicker">Ninety seconds</span>
-          <h2>Join. Talk. Leave with the artifacts.</h2>
+          <h2>Press start. Talk. Leave with the artifacts.</h2>
           <ol class="steps">
             <li>
               <span>01</span>
@@ -239,7 +239,7 @@
             </li>
             <li>
               <span>03</span>
-              <div><h3>Leave with the record</h3><p>Markdown summary, action items with owners, and a board you can keep editing or export.</p></div>
+              <div><h3>Leave with the record</h3><p>Final notes with decisions, action items and owners, plus a board you can edit or export. Every session is saved on your disk.</p></div>
             </li>
           </ol>
         </div>
@@ -301,7 +301,7 @@ docker compose up -d
         <div class="section-head reveal">
           <span class="kicker">Pricing</span>
           <h2>One subscription. Zero lock-in.</h2>
-          <p>Cloud AI, live notes and a shared board. Self-host the same stack for free if you would rather run it yourself.</p>
+          <p>Cloud AI, live notes and a local board. Self-host the same stack for free if you would rather run it yourself.</p>
         </div>
 
         <div class="price-grid">
@@ -309,14 +309,15 @@ docker compose up -d
             <div class="ribbon">Early access</div>
             <h3>Pro</h3>
             <div class="amount"><span>$</span>12<small>/month</small></div>
-            <p class="price-sub">AI notes that work alongside you. 3-day free trial.</p>
+            <p class="price-sub">Notes that keep up, in any language. 3-day free trial.</p>
             <ul>
               <li>Windows desktop app (macOS/Linux from source)</li>
-              <li>Cloud transcription (English + বাংলা)</li>
-              <li>Cloud notes with frontier models</li>
+              <li>Cloud transcription, any language</li>
+              <li>Notes linked to source segments</li>
+              <li>Decisions, actions and open questions</li>
               <li>Flags uncertain items to verify</li>
               <li>Excalidraw board, filled in live</li>
-              <li>Works with Meet, Zoom or Teams audio</li>
+              <li>Session archive on your disk</li>
               <li>Cancel anytime in PayPal</li>
             </ul>
             <div class="paypal-wrap">
@@ -355,11 +356,15 @@ docker compose up -d
           </details>
           <details class="reveal">
             <summary>How does it join my meeting?</summary>
-            <p>Two ways: the desktop app captures your mic and system audio - no bot in the room. Or you can send a bot to Zoom, Meet, Teams or Jitsi, depending on your setup.</p>
+            <p>It doesn't. The desktop app captures your mic and whatever audio plays on the laptop — Zoom, Meet, Teams, WhatsApp, a YouTube lecture. No bot, no invite link, nothing to install in the call.</p>
+          </details>
+          <details class="reveal">
+            <summary>Does it work in Bangla or other languages?</summary>
+            <p>Yes. The speech model detects the language automatically, including mixed speech, and the notes are written in the language the meeting uses. Names, numbers and technical terms are kept as spoken.</p>
           </details>
           <details class="reveal">
             <summary>What does Pro actually add?</summary>
-            <p>The Windows desktop app, cloud transcription, cloud notes powered by frontier models, uncertainty flags, and the Excalidraw board. Self-hosting is free if you bring your own model key.</p>
+            <p>The Windows desktop app, cloud transcription in any language, structured notes with source segments, decisions, action items, open questions, uncertainty flags, and the Excalidraw board. Self-hosting is free if you bring your own model key.</p>
           </details>
           <details class="reveal">
             <summary>Where does my audio go?</summary>
