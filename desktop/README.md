@@ -12,6 +12,32 @@ cd panel && npm install && npm run build && cd ..
 npm start
 ```
 
+## Audio and transcription
+
+**Start notes** captures system audio (everyone in the call) and your microphone. If the bundled
+whisper.cpp runtime is present, transcription runs on the device with `ggml-base.en.bin`; audio never
+leaves the machine. If the runtime is missing, the app falls back to the server's
+`/v1/transcribe` endpoint. Captions are the second fallback.
+
+### Bundle the local runtime (needed for the installer)
+
+Create `whisper-runtime/` next to this README:
+
+```
+whisper-runtime/
+├── whisper-cli.exe
+├── whisper.dll
+├── ggml.dll
+├── ggml-base.dll
+├── ggml-cpu-*.dll
+└── models/ggml-base.en.bin
+```
+
+- Binaries: <https://github.com/ggml-org/whisper.cpp/releases/download/b5454/whisper-bin-x64.zip>
+- Model: <https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin> (~141 MB)
+
+`extraResources` copies it into the installed app. The installer is ~209 MB as a result.
+
 ## Build the Windows installer
 
 ```bash

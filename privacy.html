@@ -37,8 +37,9 @@
 
       <p>
         <b>Audio.</b> When you start a meeting, the desktop app captures system audio and your
-        microphone in short chunks and sends those chunks to a speech-to-text provider. Transcript
-        text is then sent to the AI provider. Audio chunks are not stored after transcription.
+        microphone. If the bundled Whisper runtime is available, transcription happens on your
+        device and audio never leaves it. If it is missing, short audio chunks are sent to a
+        speech-to-text provider instead. Audio chunks are not stored after transcription.
       </p>
 
       <h2>Why we process it</h2>
