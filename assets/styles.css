@@ -627,3 +627,12 @@ details p { margin: 0 0 20px; color: var(--muted); max-width: 66ch; font-size: 1
   }
   .reveal { opacity: 1; transform: none; }
 }
+
+/* legal */
+.legal { max-width: 820px; margin: 0 auto; padding: 56px 22px 80px; position: relative; z-index: 1; }
+.legal h1 { font-size: clamp(32px, 4vw, 48px); }
+.legal .updated { color: var(--muted); font-size: 12.5px; }
+.legal h2 { font-size: 21px; margin: 30px 0 8px; }
+.legal p, .legal li { color: var(--muted); font-size: 15px; }
+.legal ul { padding-left: 20px; }
+.legal a { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
