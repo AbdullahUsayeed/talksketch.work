@@ -106,6 +106,7 @@ let sessionNotes = emptyNotes();
 let analyzing = false;
 let analyzedThrough = 0;
 let lastAnalyzeAt = 0;
+let pendingTranscriptions = 0;
 let chunkSeq = 0;
 let sessionId = "";
 const postedBoard = new Set();
@@ -402,6 +403,7 @@ function addSegment(meta, text, missing = false) {
 
 async function transcribe(blob, meta, attempt = 1) {
   const { speaker, seq } = meta;
+  pendingTranscriptions += 1;
   try {
     const base64 = toBase64(await blob.arrayBuffer());
     const headers = { "content-type": "application/json" };
@@ -433,6 +435,8 @@ async function transcribe(blob, meta, attempt = 1) {
     addSegment(meta, `[missing chunk ${seq}]`, true);
     setStatus(`Chunk ${seq} failed after retries — marked as missing.`, true);
     if (/trial/i.test(message)) void refreshEntitlement();
+  } finally {
+    pendingTranscriptions -= 1;
   }
 }
 
@@ -551,7 +555,11 @@ $("stop").addEventListener("click", async () => {
   $("stop").hidden = true;
   $("start").disabled = false;
   setStatus("Finishing transcription…");
-  await new Promise((resolve) => setTimeout(resolve, 3500));
+  const deadline = Date.now() + 15000;
+  while (pendingTranscriptions > 0 && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+  await new Promise((resolve) => setTimeout(resolve, 500));
   for (let i = 0; i < 40 && analyzing; i += 1) {
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
