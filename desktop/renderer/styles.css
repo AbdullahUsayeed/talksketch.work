@@ -107,3 +107,20 @@ webview { width: 100%; height: 100%; display: flex; }
 .modal-hint { margin: 0 0 10px; color: #9aa4b2; font-size: 12.5px; }
 .modal-card textarea { width: 100%; background: #0b0e13; color: #e6edf3; border: 1px solid #2a3240; border-radius: 8px; padding: 10px; font: inherit; font-size: 12.5px; resize: vertical; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+
+/* join panel */
+.pane.meet { display: grid; place-items: center; background: #0f1115; padding: 24px; }
+.join { max-width: 540px; }
+.join-mark { color: #ff5a36; font-size: 30px; margin-bottom: 8px; }
+.join h2 { font-size: 28px; margin: 0 0 10px; letter-spacing: -.03em; }
+.join p { color: #9aa4b2; margin: 0 0 16px; line-height: 1.6; }
+.join-row { display: flex; gap: 8px; margin-bottom: 18px; }
+.join-row input {
+  flex: 1; min-width: 0; background: #0b0e13; color: #e6edf3;
+  border: 1px solid #2a3240; border-radius: 8px; padding: 9px 10px; font: inherit; font-size: 12.5px;
+}
+.join ol { margin: 0 0 16px; padding-left: 20px; color: #c9d1d9; font-size: 13px; }
+.join ol li { margin-bottom: 6px; }
+.join-note { font-size: 11.5px; color: #6f7a8a; border-top: 1px solid #232a36; padding-top: 12px; margin: 0; }
+
+.actions { margin-left: auto; }

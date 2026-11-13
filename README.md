@@ -29,7 +29,7 @@ Pushes to `main` deploy through `.github/workflows/pages.yml`. In the repo setti
 The Pro button is a live PayPal subscription:
 
 - Plan: `P-6YB06036H1886744ENL3HT5A`
-- 7-day free trial, then **$12/month USD**
+- 3-day free trial, then **$12/month USD**
 - Product: `PROD-06C413632R371032G`
 
 The plan ID lives in `assets/app.js` and is public by design. The PayPal **secret** is

@@ -9,6 +9,8 @@ const DEFAULTS = {
 
 const settings = { ...DEFAULTS, ...JSON.parse(localStorage.getItem("ts_settings") || "{}") };
 let sessionToken = localStorage.getItem("ts_session") || "";
+let planId = "";
+let trialDays = 3;
 for (const key of Object.keys(DEFAULTS)) $(key).value = settings[key] ?? "";
 
 function persist() {
@@ -20,14 +22,14 @@ $("settings-toggle").addEventListener("click", () => {
   $("settings").hidden = !$("settings").hidden;
 });
 
-$("open").addEventListener("click", () => {
-  const url = $("url").value.trim();
+$("open-meet").addEventListener("click", () => {
+  const url = $("meet-url").value.trim();
   if (!/^https:\/\//.test(url)) {
     setStatus("Enter an https meeting URL.", true);
     return;
   }
-  $("meet").loadURL(url);
-  setStatus("Opening meeting…");
+  window.talksketch?.openExternal(url);
+  setStatus("Opening the meeting in your browser…");
 });
 
 function setStatus(text, error = false) {
@@ -60,10 +62,6 @@ panel.addEventListener("load", () => {
   panelReady = true;
   pushState();
 });
-
-if (window.talksketch?.onPanel) {
-  window.talksketch.onPanel((markdown) => post("claude", { markdown }));
-}
 
 /* ---------- captions ---------- */
 let capturing = false;
@@ -212,6 +210,7 @@ async function analyze(final = false) {
     setStatus(final ? "Done. Summary is in Notes." : "Up to date.");
   } catch (error) {
     setStatus(`Analysis failed: ${error.message}`, true);
+    if (/trial/i.test(error.message)) void refreshEntitlement();
   }
 }
 
@@ -287,6 +286,7 @@ async function transcribe(blob, speaker) {
     setStatus(`Listening · ${speaker}: ${text.slice(0, 70)}`);
   } catch (error) {
     setStatus(`Transcription failed: ${error.message}`, true);
+    if (/trial/i.test(error.message)) void refreshEntitlement();
   }
 }
 
@@ -471,16 +471,7 @@ $("start").addEventListener("click", async () => {
       );
     } else {
       audioMode = false;
-      const injected = await injectObserver();
-      if (injected === "failed") {
-        setStatus("Audio and captions are both unavailable. Use Paste.", true);
-        stopTimers();
-        $("stop").hidden = true;
-        $("start").disabled = false;
-        return;
-      }
-      drainTimer = setInterval(drain, 900);
-      setStatus("Audio unavailable; using Meet captions.");
+      setStatus("Audio unavailable. Allow screen/audio sharing, or use Paste.", true);
     }
   } catch (error) {
     setStatus(`Could not start: ${error.message}`, true);
@@ -513,60 +504,97 @@ $("stop").addEventListener("click", async () => {
   await analyze(true);
 });
 
-$("meet").addEventListener("dom-ready", () => {
-  setStatus("Meeting view ready. Join the call, then start notes.");
-  if (capturing) injectObserver();
-});
-
-$("meet").addEventListener("did-fail-load", () => setStatus("Meeting view failed to load. Check the URL.", true));
-
 persist();
 pushState();
 
-/* ---------- Google sign-in ---------- */
+/* ---------- Google sign-in (system browser) ---------- */
 async function setupGoogle() {
   try {
     const config = await fetch(`${settings.server.replace(/\/$/, "")}/v1/config`).then((res) => res.json());
-    if (!config.googleEnabled || !config.googleClientId) return;
-    await new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = "https://accounts.google.com/gsi/client";
-      script.onload = resolve;
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
-    window.google.accounts.id.initialize({
-      client_id: config.googleClientId,
-      callback: async (response) => {
-        try {
-          const res = await fetch(`${settings.server.replace(/\/$/, "")}/v1/auth/google`, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ credential: response.credential }),
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || "Sign-in failed.");
-          sessionToken = data.token;
-          localStorage.setItem("ts_session", sessionToken);
-          setStatus(`Signed in as ${data.email}.`);
-          $("google-signin").style.display = "none";
-        } catch (error) {
-          setStatus(error.message, true);
-        }
-      },
-    });
-    window.google.accounts.id.renderButton($("google-signin"), {
-      theme: "filled_black",
-      size: "medium",
-      text: "signin_with",
-      shape: "pill",
-    });
+    if (config.planId) planId = config.planId;
+    if (typeof config.trialDays === "number") trialDays = config.trialDays;
+    if (!config.googleEnabled) return;
+    const host = $("google-signin");
+    const button = document.createElement("button");
+    button.className = "ghost";
+    button.textContent = "Sign in with Google";
+    button.addEventListener("click", () => void startGoogleSignIn());
+    host.appendChild(button);
   } catch {
-    /* Google sign-in is optional for pilot keys */
+    /* access keys still work */
   }
 }
 
+$("upgrade").addEventListener("click", () => {
+  if (!planId) return;
+  window.talksketch?.openExternal(
+    `https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=${encodeURIComponent(planId)}`,
+  );
+});
+
+async function refreshEntitlement() {
+  if (!sessionToken) return;
+  try {
+    const base = settings.server.replace(/\/$/, "");
+    const res = await fetch(`${base}/v1/entitlement`, {
+      headers: { authorization: `Bearer ${sessionToken}` },
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.planId) planId = data.planId;
+    if (typeof data.trialDays === "number") trialDays = data.trialDays;
+    if (data.status === "trial") {
+      $("upgrade").hidden = false;
+      setStatus(`Trial: ${data.daysLeft} day${data.daysLeft === 1 ? "" : "s"} left.`);
+    } else if (data.status === "expired") {
+      $("upgrade").hidden = false;
+      setStatus("Trial ended. Subscribe to continue.", true);
+    } else {
+      $("upgrade").hidden = true;
+    }
+  } catch {
+    /* keep the current status */
+  }
+}
+
+async function startGoogleSignIn() {
+  const state = crypto.randomUUID();
+  const base = settings.server.replace(/\/$/, "");
+  const opened = await window.talksketch?.openExternal(
+    `${base}/v1/auth/google/start?state=${encodeURIComponent(state)}`,
+  );
+  if (!opened) {
+    setStatus("Could not open the browser for sign-in.", true);
+    return;
+  }
+  setStatus("Finish signing in with Google in your browser…");
+  const started = Date.now();
+  const timer = setInterval(async () => {
+    if (Date.now() - started > 5 * 60 * 1000) {
+      clearInterval(timer);
+      setStatus("Sign-in timed out. Try again.", true);
+      return;
+    }
+    try {
+      const res = await fetch(`${base}/v1/auth/google/poll?state=${encodeURIComponent(state)}`);
+      if (res.status === 202) return;
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Sign-in failed.");
+      sessionToken = data.token;
+      localStorage.setItem("ts_session", sessionToken);
+      $("google-signin").innerHTML = "";
+      setStatus(`Signed in as ${data.email}.`);
+      clearInterval(timer);
+      void refreshEntitlement();
+    } catch (error) {
+      clearInterval(timer);
+      setStatus(error.message, true);
+    }
+  }, 2000);
+}
+
 setupGoogle();
+if (sessionToken) void refreshEntitlement();
 
 /* ---------- local whisper transcripts ---------- */
 if (window.talksketch?.onTranscript) {
@@ -576,6 +604,7 @@ if (window.talksketch?.onTranscript) {
       return;
     }
     transcript.push(`${speaker}: ${text}`);
+    window.talksketch?.line({ speaker, text });
     captured += 1;
     $("captured").textContent = `${captured} audio chunks`;
     setStatus(`Listening · ${speaker}: ${text.slice(0, 70)}`);

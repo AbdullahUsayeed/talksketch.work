@@ -178,18 +178,6 @@ async function startMcp() {
   );
 
   server.registerTool(
-    'update_live_panel',
-    {
-      description: 'Push markdown into the TalkSketch right-hand panel.',
-      inputSchema: { markdown: z.string().min(1).max(20000) },
-    },
-    async ({ markdown }) => {
-      mainWindow?.webContents.send('panel-update', markdown);
-      return { content: [{ type: 'text', text: 'Panel updated.' }] };
-    },
-  );
-
-  server.registerTool(
     'speak_in_meeting',
     {
       description:
@@ -404,6 +392,14 @@ async function runLocalStt(sender, payload) {
 ipcMain.handle('local-stt', () => {
   const { cli, model } = whisperPaths();
   return fs.existsSync(cli) && fs.existsSync(model);
+});
+
+ipcMain.handle('open-external', async (_event, url) => {
+  if (typeof url === 'string' && url.startsWith('https://')) {
+    await shell.openExternal(url);
+    return true;
+  }
+  return false;
 });
 
 ipcMain.on('audio-chunk', (event, payload) => enqueueStt(event.sender, payload));

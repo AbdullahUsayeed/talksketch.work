@@ -6,7 +6,6 @@ const TABS = [
   ['notes', 'Notes'],
   ['actions', 'Actions'],
   ['board', 'Board'],
-  ['claude', 'Claude'],
 ];
 
 const COLUMNS = {
@@ -29,7 +28,6 @@ export default function App() {
   const [tab, setTab] = useState(window.location.hash === '#board' ? 'board' : 'notes');
   const [api, setApi] = useState(null);
   const [state, setState] = useState({ notes: [], actions: [], suggestions: [], summary: '' });
-  const [claude, setClaude] = useState('');
   const cursors = useRef({});
 
   const applyBoard = useCallback(
@@ -75,10 +73,6 @@ export default function App() {
         });
       }
       if (data.type === 'board') applyBoard(data.ops);
-      if (data.type === 'claude') {
-        setClaude(data.markdown);
-        setTab('claude');
-      }
       if (data.type === 'tab') setTab(data.tab);
     };
     window.addEventListener('message', onMessage);
@@ -143,10 +137,6 @@ export default function App() {
               </div>
             ))
           )}
-        </div>
-
-        <div className={`list ${tab === 'claude' ? 'active' : ''}`}>
-          <pre>{claude || "Claude's plans, snippets and diagrams appear here when it calls update_live_panel."}</pre>
         </div>
       </div>
     </div>

@@ -14,13 +14,9 @@
         <span class="tag">desktop preview</span>
       </div>
 
-      <div class="address">
-        <input id="url" value="https://meet.google.com/" spellcheck="false" />
-        <button id="open" class="ghost">Open</button>
-      </div>
-
       <div class="actions">
         <div id="google-signin"></div>
+        <button id="upgrade" class="ghost" hidden>Upgrade</button>
         <button id="paste-toggle" class="ghost">Paste</button>
         <button id="settings-toggle" class="ghost">Settings</button>
         <button id="start" class="primary">Start notes</button>
@@ -34,20 +30,35 @@
       <label>Topic<input id="topic" value="Family meeting" /></label>
       <label>Participants<input id="participants" placeholder="Sarah, Tom" /></label>
       <p class="hint">
-        Start captures system audio + mic and transcribes it server-side; captions are the fallback.
-        The AI only receives the transcript window. Local MCP: <code>http://127.0.0.1:3333/mcp</code>.
+        Start captures system audio + mic. Whisper runs locally; if the runtime is missing it falls
+        back to cloud STT. Captions and Paste are fallbacks. Local MCP:
+        <code>http://127.0.0.1:3333/mcp</code>.
       </p>
     </section>
 
     <main class="split">
       <div class="pane meet">
-        <webview
-          id="meet"
-          src="https://meet.google.com/"
-          partition="persist:meet"
-          allowpopups
-          useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-        ></webview>
+        <div class="join">
+          <div class="join-mark">✳</div>
+          <h2>Join in your browser</h2>
+          <p>
+            Open Meet, Zoom or Teams normally. TalkSketch listens to system audio and writes notes
+            beside it — no bot joins the call.
+          </p>
+          <div class="join-row">
+            <input id="meet-url" value="https://meet.google.com/" spellcheck="false" />
+            <button id="open-meet" class="primary">Open meeting</button>
+          </div>
+          <ol>
+            <li>Join the call in Chrome or the desktop app.</li>
+            <li>Press <b>Start notes</b> and allow screen + audio sharing.</li>
+            <li>Keep talking. Notes land on the right.</li>
+          </ol>
+          <p class="join-note">
+            Google blocks sign-in inside embedded browsers, so the meeting opens in your real browser.
+            The app still hears it through system audio.
+          </p>
+        </div>
       </div>
 
       <div class="pane notes">
@@ -56,7 +67,7 @@
     </main>
 
     <footer class="status">
-      <span id="status">Ready. Join a Meet, turn on captions, then start notes.</span>
+      <span id="status">Ready. Join a meeting in your browser, then start notes.</span>
       <span id="captured">0 lines captured</span>
     </footer>
 
