@@ -234,7 +234,7 @@ function publicResult(job: Job): unknown {
 const server = createServer(async (req, res) => {
   try {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', 'content-type');
+    res.setHeader('Access-Control-Allow-Headers', 'content-type, authorization, x-access-key');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     if (req.method === 'OPTIONS') {
       res.writeHead(204);
