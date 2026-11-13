@@ -34,6 +34,7 @@
         back to cloud STT. Captions and Paste are fallbacks. Local MCP:
         <code>http://127.0.0.1:3333/mcp</code>.
       </p>
+      <button id="diagnostics" class="ghost" type="button">Copy diagnostics</button>
     </section>
 
     <main class="split">
@@ -70,6 +71,24 @@
       <span id="status">Ready. Join a meeting in your browser, then start notes.</span>
       <span id="captured">0 lines captured</span>
     </footer>
+
+    <div class="modal" id="consent-modal" hidden>
+      <div class="modal-card">
+        <h3>Before you start</h3>
+        <p class="modal-hint">
+          TalkSketch captures <b>system audio and your microphone</b>, transcribes it (on this device
+          when local Whisper is available), and sends the transcript to an AI provider to write notes.
+        </p>
+        <p class="modal-hint">
+          You must tell everyone in the call that an AI assistant is taking notes. Do not use this
+          covertly.
+        </p>
+        <div class="modal-actions">
+          <button id="consent-cancel" class="ghost" type="button">Cancel</button>
+          <button id="consent-accept" class="primary" type="button">I understand — continue</button>
+        </div>
+      </div>
+    </div>
 
     <div class="modal" id="paste-modal" hidden>
       <div class="modal-card">

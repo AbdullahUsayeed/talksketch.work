@@ -38,7 +38,45 @@ function setStatus(text, error = false) {
   const el = $("status");
   el.textContent = text;
   el.className = error ? "err" : "";
+  if (error) lastError = text;
 }
+
+let lastError = "";
+
+function ensureConsent() {
+  return new Promise((resolve) => {
+    if (localStorage.getItem("ts_consent") === "1") return resolve(true);
+    $("consent-modal").hidden = false;
+    $("consent-accept").onclick = () => {
+      localStorage.setItem("ts_consent", "1");
+      $("consent-modal").hidden = true;
+      resolve(true);
+    };
+    $("consent-cancel").onclick = () => {
+      $("consent-modal").hidden = true;
+      resolve(false);
+    };
+  });
+}
+
+$("diagnostics").addEventListener("click", async () => {
+  const lines = [
+    `TalkSketch 0.1.0`,
+    `server: ${settings.server}`,
+    `signedIn: ${Boolean(sessionToken)}`,
+    `email: ${sessionEmail || "n/a"}`,
+    `localWhisper: ${window.talksketch ? await window.talksketch.hasLocalStt() : "n/a"}`,
+    `trialDays: ${trialDays}`,
+    `planId: ${planId || "n/a"}`,
+    `lastError: ${lastError || "none"}`,
+  ];
+  try {
+    await navigator.clipboard.writeText(lines.join("\n"));
+    setStatus("Diagnostics copied to clipboard.");
+  } catch {
+    setStatus("Could not copy diagnostics.", true);
+  }
+});
 
 /* ---------- panel bridge ---------- */
 const panel = $("panel");
@@ -452,6 +490,11 @@ $("start").addEventListener("click", async () => {
   if (!settings.code && !sessionToken) {
     $("settings").hidden = false;
     setStatus("Enter your pilot access key in Settings first.", true);
+    return;
+  }
+  const consented = await ensureConsent();
+  if (!consented) {
+    $("start").disabled = false;
     return;
   }
   $("start").disabled = true;
