@@ -120,6 +120,7 @@ function emptyNotes() {
     action_items: [],
     open_questions: [],
     uncertain: [],
+    coverage: null,
   };
 }
 
@@ -166,6 +167,7 @@ async function analyze(final = false) {
       action_items: Array.isArray(data.action_items) ? data.action_items : [],
       open_questions: Array.isArray(data.open_questions) ? data.open_questions : [],
       uncertain: Array.isArray(data.uncertain) ? data.uncertain : [],
+      coverage: data.coverage ?? null,
     };
 
     if (!final && Array.isArray(data.board) && data.board.length > 0) {

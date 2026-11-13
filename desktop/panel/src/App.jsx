@@ -40,6 +40,7 @@ export default function App() {
     action_items: [],
     open_questions: [],
     uncertain: [],
+    coverage: null,
   });
   const cursors = useRef({});
 
@@ -87,6 +88,7 @@ export default function App() {
             action_items: [],
             open_questions: [],
             uncertain: [],
+            coverage: null,
           },
         );
       }
@@ -131,6 +133,13 @@ export default function App() {
         </div>
 
         <div className={`list ${tab === 'notes' ? 'active' : ''}`}>
+          {session.coverage && session.coverage.windows > 1 ? (
+            <div className="coverage">
+              Final notes cover segments {session.coverage.from}–{session.coverage.to}, merged from{' '}
+              {session.coverage.windows} windows.
+              {session.coverage.dropped ? ' Some earlier segments were not included.' : ''}
+            </div>
+          ) : null}
           {session.title ? <h2 className="session-title">{session.title}</h2> : null}
           {session.summary ? <p className="summary">{session.summary}</p> : null}
 

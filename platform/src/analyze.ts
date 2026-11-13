@@ -49,10 +49,36 @@ export interface TranscriptSegment {
 export interface AnalyzeWindowInput {
   segments: TranscriptSegment[];
   currentNotes?: unknown;
-  mode?: 'incremental' | 'final';
+  mode?: 'incremental' | 'final' | 'window';
   topic?: string;
   participants?: string[];
 }
+
+export interface Coverage {
+  from: number;
+  to: number;
+  total: number;
+  windows: number;
+  dropped: boolean;
+}
+
+export interface SessionResult {
+  notes: SessionNotes;
+  coverage: Coverage;
+}
+
+/*
+ * DeepSeek V4.1 Flash has a 1,048,576-token context. The real limits are:
+ * - the 200k-token long-context price tier (input/output roughly doubles)
+ * - latency and the risk of one huge call failing
+ * So a single final pass gets 180k characters (~180k Bangla tokens), which
+ * covers about three hours; beyond that we window and merge.
+ */
+const INCREMENTAL_SEGMENTS = 160;
+const INCREMENTAL_CHARS = 20_000;
+const SINGLE_SEGMENTS = 2500;
+const SINGLE_CHARS = 180_000;
+const WINDOW_SEGMENTS = 250;
 
 const SYSTEM_PROMPT = `You are a note-taking assistant for live meetings and lectures. You receive an auto-generated speech-to-text transcript, possibly in any language or a mix of languages. Your job is to maintain clear, accurate, structured notes.
 
@@ -103,6 +129,21 @@ function formatSegments(segments: TranscriptSegment[]): string {
     .join('\n');
 }
 
+/** Keep the most recent segments that fit both limits. */
+function trimToFit(segments: TranscriptSegment[], maxSegments: number, maxChars: number) {
+  const kept: TranscriptSegment[] = [];
+  let chars = 0;
+  for (let i = segments.length - 1; i >= 0; i -= 1) {
+    const segment = segments[i];
+    if (!segment) continue;
+    const line = `[${segment.seq}] ${segment.speaker}: ${segment.text}`;
+    if (kept.length >= maxSegments || chars + line.length > maxChars) break;
+    kept.unshift(segment);
+    chars += line.length + 1;
+  }
+  return { segments: kept, chars };
+}
+
 async function callModel(config: Config, messages: Array<{ role: string; content: string }>): Promise<string> {
   const response = await fetch(`${config.llm.baseUrl?.replace(/\/$/, '')}/chat/completions`, {
     method: 'POST',
@@ -110,6 +151,7 @@ async function callModel(config: Config, messages: Array<{ role: string; content
       authorization: `Bearer ${config.llm.apiKey}`,
       'content-type': 'application/json',
     },
+    signal: AbortSignal.timeout(240_000),
     body: JSON.stringify({
       model: config.llm.model,
       temperature: 0.25,
@@ -130,57 +172,16 @@ function readJson(raw: string): unknown {
   return JSON.parse(cleaned);
 }
 
-/**
- * Stateless: transcript segments in, structured notes out.
- * Incremental calls receive the current notes and the new segments.
- */
-export async function analyzeWindow(input: AnalyzeWindowInput, config: Config): Promise<AnalyzeWindowResult> {
-  const final = input.mode === 'final';
-  const segments = input.segments.slice(-400);
-  if (segments.length === 0) throw new Error('Transcript window is empty.');
-
-  const transcript = formatSegments(segments).slice(-45_000);
-  const context = [
-    input.topic ? `Session topic: ${input.topic}` : '',
-    input.participants?.length ? `Participants: ${input.participants.join(', ')}` : '',
-  ]
-    .filter(Boolean)
-    .join('\n');
-
-  const user = final
-    ? [
-        context,
-        'FULL TRANSCRIPT:',
-        transcript,
-        '',
-        'This is the complete session. Produce clean, final notes from scratch. Merge repeated topics, order them logically, and double-check that every decision and action item is actually supported by the transcript. Return the full JSON.',
-      ]
-        .filter(Boolean)
-        .join('\n')
-    : [
-        context,
-        'CURRENT NOTES:',
-        JSON.stringify(input.currentNotes ?? {}),
-        '',
-        `NEW TRANSCRIPT (segments ${segments[0]?.seq}-${segments[segments.length - 1]?.seq}):`,
-        transcript,
-        '',
-        'Update the notes with the new transcript. Return the full JSON.',
-      ]
-        .filter(Boolean)
-        .join('\n');
-
-  const messages = [
-    { role: 'system', content: SYSTEM_PROMPT },
-    { role: 'user', content: user },
-  ];
-
+async function callAndParse(
+  config: Config,
+  messages: Array<{ role: string; content: string }>,
+): Promise<SessionNotes> {
   const first = await callModel(config, messages);
   try {
     const parsed = NotesSchema.safeParse(readJson(first));
     if (parsed.success) return parsed.data;
   } catch {
-    /* retry once below */
+    /* retry below */
   }
 
   const second = await callModel(config, [
@@ -196,4 +197,158 @@ export async function analyzeWindow(input: AnalyzeWindowInput, config: Config): 
   const parsed = NotesSchema.safeParse(readJson(second));
   if (!parsed.success) throw new Error('Model returned an unexpected shape.');
   return parsed.data;
+}
+
+async function runNotes(input: AnalyzeWindowInput, config: Config): Promise<SessionNotes> {
+  const final = input.mode === 'final';
+  const windowMode = input.mode === 'window';
+  if (input.segments.length === 0) throw new Error('Transcript window is empty.');
+
+  const transcript = formatSegments(input.segments);
+  const context = [
+    input.topic ? `Session topic: ${input.topic}` : '',
+    input.participants?.length ? `Participants: ${input.participants.join(', ')}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  const user = windowMode
+    ? [
+        context,
+        `WINDOW TRANSCRIPT (segments ${input.segments[0]?.seq}-${input.segments[input.segments.length - 1]?.seq}):`,
+        transcript,
+        '',
+        'This is one window of a longer session. Produce notes for this window only. Do not assume what happened outside it. Return the full JSON, with board as [].',
+      ]
+        .filter(Boolean)
+        .join('\n')
+    : final
+    ? [
+        context,
+        'FULL TRANSCRIPT:',
+        transcript,
+        '',
+        'This is the complete session. Produce clean, final notes from scratch. Merge repeated topics, order them logically, and double-check that every decision and action item is actually supported by the transcript. Return the full JSON.',
+      ]
+        .filter(Boolean)
+        .join('\n')
+    : [
+        context,
+        'CURRENT NOTES:',
+        JSON.stringify(input.currentNotes ?? {}),
+        '',
+        `NEW TRANSCRIPT (segments ${input.segments[0]?.seq}-${input.segments[input.segments.length - 1]?.seq}):`,
+        transcript,
+        '',
+        'Update the notes with the new transcript. Return the full JSON.',
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+  return callAndParse(config, [
+    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'user', content: user },
+  ]);
+}
+
+async function mergeWindowNotes(
+  windows: Array<{ from: number; to: number; notes: SessionNotes }>,
+  config: Config,
+): Promise<SessionNotes> {
+  const user = [
+    'You are given notes JSON from consecutive windows of ONE session, in time order.',
+    'Merge them into a single set of final notes.',
+    '',
+    'RULES',
+    '- Use only what appears in the window notes. Add nothing new.',
+    '- Merge topics that continue across windows; keep the segment refs from all merged points.',
+    '- Remove duplicate points, decisions, and action items. Keep the earliest and latest refs.',
+    '- If a later window changes or reverses an earlier decision, keep the later version and mention the change.',
+    '- Keep every item from "uncertain" and every missing-chunk flag. Do not resolve them.',
+    '- Order topics in the order they were discussed.',
+    '- Preserve numbers, names, dates, and deadlines exactly.',
+    '- Return ONLY the full notes JSON in the same structure. Board stays empty.',
+    '',
+    'WINDOW NOTES:',
+    ...windows.map(
+      (window, index) =>
+        `[Window ${index + 1}: segments ${window.from}-${window.to}]\n${JSON.stringify(window.notes)}`,
+    ),
+  ].join('\n');
+
+  const merged = await callAndParse(config, [
+    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'user', content: user },
+  ]);
+  return { ...merged, board: [] };
+}
+
+/**
+ * Final notes for a whole session.
+ * Up to 700 segments / 80k characters in one pass; longer sessions are
+ * processed in 250-segment windows and merged, so nothing is silently dropped.
+ */
+export async function analyzeSession(input: AnalyzeWindowInput, config: Config): Promise<SessionResult> {
+  const total = input.segments.length;
+  const first = input.segments[0]?.seq ?? 0;
+  const last = input.segments[input.segments.length - 1]?.seq ?? 0;
+
+  if (input.mode !== 'final') {
+    const trimmed = trimToFit(input.segments, INCREMENTAL_SEGMENTS, INCREMENTAL_CHARS);
+    const notes = await runNotes({ ...input, segments: trimmed.segments }, config);
+    return {
+      notes,
+      coverage: { from: first, to: last, total, windows: 1, dropped: false },
+    };
+  }
+
+  const fullLength = formatSegments(input.segments).length;
+  if (total <= SINGLE_SEGMENTS && fullLength <= SINGLE_CHARS) {
+    const notes = await runNotes({ ...input, mode: 'final' }, config);
+    return {
+      notes,
+      coverage: { from: first, to: last, total, windows: 1, dropped: false },
+    };
+  }
+
+  const windows: Array<{ from: number; to: number; notes: SessionNotes }> = [];
+  for (let index = 0; index < total; index += WINDOW_SEGMENTS) {
+    const slice = input.segments.slice(index, index + WINDOW_SEGMENTS);
+    if (slice.length === 0) continue;
+    let notes: SessionNotes;
+    try {
+      const windowNotes = await runNotes({ ...input, segments: slice, mode: 'window' }, config);
+      notes = { ...windowNotes, board: [] };
+    } catch {
+      notes = {
+        title: '',
+        summary: '',
+        topics: [],
+        decisions: [],
+        action_items: [],
+        open_questions: [],
+        uncertain: [
+          {
+            text: `Window ${windows.length + 1} could not be processed`,
+            segments: [slice[0]!.seq, slice[slice.length - 1]!.seq],
+          },
+        ],
+        board: [],
+      };
+    }
+    windows.push({ from: slice[0]!.seq, to: slice[slice.length - 1]!.seq, notes });
+  }
+
+  const merged = await mergeWindowNotes(windows, config);
+  return {
+    notes: merged,
+    coverage: { from: first, to: last, total, windows: windows.length, dropped: false },
+  };
+}
+
+/** Single-window entry point, kept for incremental calls and tests. */
+export async function analyzeWindow(input: AnalyzeWindowInput, config: Config): Promise<AnalyzeWindowResult> {
+  const trimmed = trimToFit(input.segments, INCREMENTAL_SEGMENTS, INCREMENTAL_CHARS);
+  if (trimmed.segments.length === 0) throw new Error('Transcript window is empty.');
+  return runNotes({ ...input, segments: trimmed.segments }, config);
 }

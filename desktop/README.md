@@ -50,6 +50,11 @@ On **Stop**, the app sends the full transcript once and rebuilds the notes from 
 corrects drift from incremental updates. An invalid JSON answer is retried once; if it still
 fails, the previous notes stay intact.
 
+DeepSeek V4.1 Flash has a 1M-token context, so a single final pass handles about **180k
+characters** (~3 hours of Bangla) — kept just under the 200k-token long-context price tier.
+Longer sessions are split into 250-segment windows, each summarized, then merged by a separate
+pass; the UI shows which segments the final notes cover. Nothing is silently truncated.
+
 ## Persistence
 
 Every transcribed segment is appended immediately to

@@ -7,7 +7,7 @@ import { loadConfig } from './config.js';
 import { createLogger } from './logger.js';
 import { analyzeTranscript, type AnalyzeResult } from './oneshot.js';
 import { LiveSession, type LiveLine } from './live.js';
-import { analyzeWindow } from './analyze.js';
+import { analyzeSession } from './analyze.js';
 import { signSession, verifyGoogleCredential, verifySession } from './auth.js';
 import {
   getSubscription,
@@ -518,7 +518,7 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === 'POST' && url.pathname === '/v1/analyze') {
-      const body = JSON.parse(await readBody(req, 400_000)) as {
+      const body = JSON.parse(await readBody(req, 1_500_000)) as {
         segments?: Array<{ seq?: number; speaker?: string; text?: string }>;
         transcript?: string;
         currentNotes?: unknown;
@@ -566,7 +566,7 @@ const server = createServer(async (req, res) => {
           .filter((segment) => segment.text.length > 0)
           .slice(-400);
 
-        const result = await analyzeWindow(
+        const result = await analyzeSession(
           {
             segments,
             ...(body.currentNotes ? { currentNotes: body.currentNotes } : {}),
@@ -576,7 +576,7 @@ const server = createServer(async (req, res) => {
           },
           config,
         );
-        return json(res, 200, result);
+        return json(res, 200, { ...result.notes, coverage: result.coverage });
       } catch (error) {
         return json(res, 400, {
           error: error instanceof Error ? error.message : 'Analysis failed.',
