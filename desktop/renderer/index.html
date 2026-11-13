@@ -31,7 +31,10 @@
       <label>Access code<input id="code" value="TALKSKETCH" /></label>
       <label>Topic<input id="topic" value="Family meeting" /></label>
       <label>Participants<input id="participants" placeholder="Sarah, Tom" /></label>
-      <p class="hint">Run the server with <code>npm run demo</code>, or use the hosted demo address above.</p>
+      <p class="hint">
+        Local MCP: <code>http://127.0.0.1:3333/mcp</code> · tools: get_recent_captions, send_meet_chat,
+        get_meet_chat, update_live_panel, speak_in_meeting.
+      </p>
     </section>
 
     <main class="split">
@@ -44,8 +47,37 @@
           useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         ></webview>
       </div>
+
       <div class="pane notes">
-        <iframe id="notes" src="http://54.255.181.218/live" title="Live notes"></iframe>
+        <div class="tabs" id="tabs">
+          <button class="tab active" data-tab="notes">Notes</button>
+          <button class="tab" data-tab="actions">Actions</button>
+          <button class="tab" data-tab="board">Board</button>
+          <button class="tab" data-tab="claude">Claude</button>
+        </div>
+
+        <div class="panel-body">
+          <div class="tab-pane active" id="pane-notes">
+            <p class="summary" id="summary"></p>
+            <div id="notes"><p class="muted">Notes appear here once the meeting starts.</p></div>
+          </div>
+
+          <div class="tab-pane" id="pane-actions">
+            <h4>Action items <span id="actions-count">0</span></h4>
+            <div id="actions"><p class="muted">No action items yet.</p></div>
+            <h4>Suggestions <span id="suggestions-count">0</span></h4>
+            <div id="suggestions"><p class="muted">No suggestions yet.</p></div>
+          </div>
+
+          <div class="tab-pane board-pane" id="pane-board">
+            <img id="board" alt="Whiteboard generated from the meeting" />
+            <p class="muted" id="board-hint">The board refreshes while the AI draws.</p>
+          </div>
+
+          <div class="tab-pane" id="pane-claude">
+            <pre id="claude">Claude's plans, snippets and diagrams appear here when it calls update_live_panel.</pre>
+          </div>
+        </div>
       </div>
     </main>
 

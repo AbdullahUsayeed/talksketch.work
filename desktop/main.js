@@ -1,17 +1,228 @@
-const { app, BrowserWindow, session, shell } = require('electron');
+const { app, BrowserWindow, session, shell, ipcMain, webContents } = require('electron');
+const http = require('node:http');
+const { randomUUID } = require('node:crypto');
+const { spawn } = require('node:child_process');
 const path = require('node:path');
 
-const CHROME_UA =
+const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+app.userAgentFallback = UA;
+
+const MCP_PORT = 3333;
+const captions = [];
+let mainWindow;
+
+function addCaption(line) {
+  const text = String(line?.text ?? '').trim().slice(0, 1000);
+  if (!text) return;
+  captions.push({ speaker: String(line?.speaker ?? 'Participant').slice(0, 80), text, ts: Date.now() });
+  if (captions.length > 2000) captions.splice(0, captions.length - 2000);
+}
+
+function transcriptText(seconds = 120) {
+  const since = Date.now() - Math.max(5, seconds) * 1000;
+  return captions
+    .filter((line) => line.ts >= since)
+    .map((line) => `[${new Date(line.ts).toISOString().slice(11, 19)}] ${line.speaker}: ${line.text}`)
+    .join('\n');
+}
+
+function meetContents() {
+  return webContents.getAllWebContents().filter((wc) => wc.getURL().includes('meet.google.com'));
+}
+
+async function meetExec(code) {
+  const targets = meetContents();
+  if (targets.length === 0) throw new Error('No Google Meet page is open.');
+  return targets[0].executeJavaScript(code, true);
+}
+
+function buildSendChat(message) {
+  const payload = JSON.stringify(message);
+  return `(async () => {
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const q = (s) => document.querySelector(s);
+    const findButton = (re) => [...document.querySelectorAll('button')].find((b) => re.test((b.getAttribute('aria-label') || '') + ' ' + (b.textContent || '')));
+    let input = q('textarea[aria-label*="Send a message" i]') || q('div[contenteditable="true"][aria-label*="message" i]') || q('div[contenteditable="true"]');
+    if (!input) {
+      const chat = findButton(/chat with everyone|^chat$/i);
+      if (chat) chat.click();
+      await sleep(800);
+      input = q('textarea[aria-label*="Send a message" i]') || q('div[contenteditable="true"][aria-label*="message" i]') || q('div[contenteditable="true"]');
+    }
+    if (!input) return { ok: false, reason: 'chat input not found' };
+    input.focus();
+    if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
+      const proto = input.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(proto, 'value').set.call(input, ${payload});
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    } else {
+      document.execCommand('insertText', false, ${payload});
+    }
+    await sleep(200);
+    const send = findButton(/^send/i) || findButton(/send message/i);
+    if (send) send.click();
+    else input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
+    return { ok: true };
+  })()`;
+}
+
+function buildReadChat() {
+  return `(() => {
+    const panel = document.querySelector('[role="log"]');
+    if (panel) return panel.innerText.slice(-4000);
+    const dialog = [...document.querySelectorAll('[role="dialog"]')].find((d) => /chat/i.test(d.getAttribute('aria-label') || ''));
+    return dialog ? dialog.innerText.slice(-4000) : '';
+  })()`;
+}
+
+function speak(text) {
+  const ps = spawn(
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-Command',
+      'Add-Type -AssemblyName System.Speech; $s=New-Object System.Speech.Synthesis.SpeechSynthesizer; $s.Speak([Console]::In.ReadToEnd())',
+    ],
+    { stdio: ['pipe', 'ignore', 'ignore'] },
+  );
+  ps.stdin.end(text);
+}
+
+async function startMcp() {
+  const { McpServer } = await import('@modelcontextprotocol/sdk/server/mcp.js');
+  const { StreamableHTTPServerTransport } = await import('@modelcontextprotocol/sdk/server/streamableHttp.js');
+  const { z } = await import('zod');
+
+  const server = new McpServer({ name: 'talksketch', version: '0.1.0' });
+
+  server.registerTool(
+    'get_recent_captions',
+    {
+      description: 'Return the last N seconds of Google Meet captions with speaker labels.',
+      inputSchema: { seconds: z.number().int().min(5).max(3600).default(120) },
+    },
+    async ({ seconds }) => ({
+      content: [{ type: 'text', text: transcriptText(seconds) || 'No captions captured yet.' }],
+    }),
+  );
+
+  server.registerTool(
+    'send_meet_chat',
+    {
+      description: 'Send a message into the Google Meet chat.',
+      inputSchema: { message: z.string().min(1).max(1000) },
+    },
+    async ({ message }) => {
+      try {
+        const result = await meetExec(buildSendChat(message));
+        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+      } catch (error) {
+        return { content: [{ type: 'text', text: `Error: ${error.message}` }], isError: true };
+      }
+    },
+  );
+
+  server.registerTool(
+    'get_meet_chat',
+    { description: 'Read the visible Google Meet chat panel.', inputSchema: {} },
+    async () => {
+      try {
+        const text = await meetExec(buildReadChat());
+        return { content: [{ type: 'text', text: text || 'Chat is closed or empty.' }] };
+      } catch (error) {
+        return { content: [{ type: 'text', text: `Error: ${error.message}` }], isError: true };
+      }
+    },
+  );
+
+  server.registerTool(
+    'update_live_panel',
+    {
+      description: 'Push markdown into the TalkSketch right-hand panel.',
+      inputSchema: { markdown: z.string().min(1).max(20000) },
+    },
+    async ({ markdown }) => {
+      mainWindow?.webContents.send('panel-update', markdown);
+      return { content: [{ type: 'text', text: 'Panel updated.' }] };
+    },
+  );
+
+  server.registerTool(
+    'speak_in_meeting',
+    {
+      description:
+        'Speak text through the system voice. To be heard in Meet, route output to VB-Cable and select it as the microphone.',
+      inputSchema: { text: z.string().min(1).max(1000) },
+    },
+    async ({ text }) => {
+      speak(text);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: 'Speaking locally. For the call: set the default playback to CABLE Input and the Meet microphone to CABLE Output.',
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerResource(
+    'live-transcript',
+    'meet://transcript/live',
+    { mimeType: 'text/plain', description: 'Rolling Google Meet captions with speaker labels.' },
+    async (uri) => ({ contents: [{ uri: uri.href, text: transcriptText(3600) || 'No captions captured yet.' }] }),
+  );
+
+  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: () => randomUUID() });
+  await server.connect(transport);
+
+  const httpServer = http.createServer(async (req, res) => {
+    if (!req.url.startsWith('/mcp')) {
+      res.writeHead(404);
+      res.end('Not found');
+      return;
+    }
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'content-type, mcp-session-id, mcp-protocol-version');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    let body;
+    if (req.method === 'POST') {
+      const chunks = [];
+      for await (const chunk of req) chunks.push(chunk);
+      const raw = Buffer.concat(chunks).toString('utf8');
+      try {
+        body = raw ? JSON.parse(raw) : undefined;
+      } catch {
+        res.writeHead(400);
+        res.end('Invalid JSON');
+        return;
+      }
+    }
+    await transport.handleRequest(req, res, body);
+  });
+
+  httpServer.listen(MCP_PORT, '127.0.0.1', () => {
+    console.log(`[mcp] http://127.0.0.1:${MCP_PORT}/mcp`);
+  });
+}
 
 function allowMedia(ses) {
   const allowed = new Set(['media', 'audioCapture', 'videoCapture', 'notifications', 'clipboard-read']);
   ses.setPermissionRequestHandler((_wc, permission, callback) => callback(allowed.has(permission)));
   ses.setPermissionCheckHandler((_wc, permission) => allowed.has(permission));
+  ses.setUserAgent(UA);
 }
 
 function createWindow() {
-  const win = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1520,
     height: 960,
     minWidth: 1080,
@@ -20,6 +231,7 @@ function createWindow() {
     title: 'TalkSketch',
     autoHideMenuBar: true,
     webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
       webviewTag: true,
       contextIsolation: true,
       nodeIntegration: false,
@@ -27,18 +239,26 @@ function createWindow() {
     },
   });
 
-  win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
-  win.webContents.setWindowOpenHandler(({ url }) => {
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://')) shell.openExternal(url);
     return { action: 'deny' };
   });
 }
 
-app.whenReady().then(() => {
-  allowMedia(session.fromPartition('persist:meet'));
+ipcMain.on('caption', (_event, line) => addCaption(line));
+
+app.whenReady().then(async () => {
   allowMedia(session.defaultSession);
+  allowMedia(session.fromPartition('persist:meet'));
   createWindow();
+
+  try {
+    await startMcp();
+  } catch (error) {
+    console.error('[mcp] failed to start', error);
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
