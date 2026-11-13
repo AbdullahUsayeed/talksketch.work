@@ -11,6 +11,8 @@ const settings = { ...DEFAULTS, ...JSON.parse(localStorage.getItem("ts_settings"
 let sessionToken = localStorage.getItem("ts_session") || "";
 let planId = "";
 let trialDays = 3;
+let paypalClientId = "";
+let sessionEmail = "";
 for (const key of Object.keys(DEFAULTS)) $(key).value = settings[key] ?? "";
 
 function persist() {
@@ -513,6 +515,7 @@ async function setupGoogle() {
     const config = await fetch(`${settings.server.replace(/\/$/, "")}/v1/config`).then((res) => res.json());
     if (config.planId) planId = config.planId;
     if (typeof config.trialDays === "number") trialDays = config.trialDays;
+    if (config.paypalClientId) paypalClientId = config.paypalClientId;
     if (!config.googleEnabled) return;
     const host = $("google-signin");
     const button = document.createElement("button");
@@ -525,12 +528,78 @@ async function setupGoogle() {
   }
 }
 
-$("upgrade").addEventListener("click", () => {
-  if (!planId) return;
-  window.talksketch?.openExternal(
-    `https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=${encodeURIComponent(planId)}`,
-  );
+$("upgrade").addEventListener("click", () => void openUpgrade());
+
+$("upgrade-cancel").addEventListener("click", () => {
+  $("upgrade-modal").hidden = true;
 });
+
+function loadPaypal() {
+  if (window.paypal) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(
+      paypalClientId,
+    )}&vault=true&intent=subscription`;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+async function openUpgrade() {
+  $("upgrade-error").textContent = "";
+  $("upgrade-modal").hidden = false;
+  const base = settings.server.replace(/\/$/, "");
+
+  if (!paypalClientId || !sessionEmail) {
+    if (planId) {
+      window.talksketch?.openExternal(
+        `https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=${encodeURIComponent(planId)}`,
+      );
+    } else {
+      $("upgrade-error").textContent = "Billing is not configured on this server.";
+    }
+    return;
+  }
+
+  try {
+    await loadPaypal();
+  } catch {
+    $("upgrade-error").textContent = "Could not load PayPal. Check your connection.";
+    return;
+  }
+
+  $("paypal-upgrade").innerHTML = "";
+  window.paypal
+    .Buttons({
+      style: { shape: "pill", color: "gold", label: "subscribe_now", height: 45 },
+      createSubscription: (_data, actions) =>
+        actions.subscription.create({ plan_id: planId, custom_id: sessionEmail }),
+      onApprove: async (data) => {
+        try {
+          const res = await fetch(`${base}/v1/billing/activate`, {
+            method: "POST",
+            headers: {
+              authorization: `Bearer ${sessionToken}`,
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({ subscriptionId: data.subscriptionID }),
+          });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error || "Activation failed.");
+          $("upgrade-modal").hidden = true;
+          await refreshEntitlement();
+        } catch (error) {
+          $("upgrade-error").textContent = error.message;
+        }
+      },
+      onError: () => {
+        $("upgrade-error").textContent = "PayPal could not start checkout.";
+      },
+    })
+    .render("#paypal-upgrade");
+}
 
 async function refreshEntitlement() {
   if (!sessionToken) return;
@@ -541,6 +610,7 @@ async function refreshEntitlement() {
     });
     if (!res.ok) return;
     const data = await res.json();
+    if (data.email) sessionEmail = data.email;
     if (data.planId) planId = data.planId;
     if (typeof data.trialDays === "number") trialDays = data.trialDays;
     if (data.status === "trial") {
@@ -549,6 +619,9 @@ async function refreshEntitlement() {
     } else if (data.status === "expired") {
       $("upgrade").hidden = false;
       setStatus("Trial ended. Subscribe to continue.", true);
+    } else if (data.status === "active") {
+      $("upgrade").hidden = true;
+      setStatus("Pro is active.");
     } else {
       $("upgrade").hidden = true;
     }
@@ -582,6 +655,7 @@ async function startGoogleSignIn() {
       if (!res.ok) throw new Error(data.error || "Sign-in failed.");
       sessionToken = data.token;
       localStorage.setItem("ts_session", sessionToken);
+      if (data.email) sessionEmail = data.email;
       $("google-signin").innerHTML = "";
       setStatus(`Signed in as ${data.email}.`);
       clearInterval(timer);
