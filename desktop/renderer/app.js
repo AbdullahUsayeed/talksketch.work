@@ -256,6 +256,11 @@ $("start").addEventListener("click", async () => {
     drainTimer = setInterval(drain, 900);
     analyzeTimer = setInterval(() => analyze(false), 20000);
     setTimeout(() => analyze(false), 5000);
+    setTimeout(() => {
+      if (capturing && captured === 0) {
+        setStatus("No captions detected — open Paste and add lines manually.", true);
+      }
+    }, 20000);
   } catch (error) {
     setStatus(`Could not start: ${error.message}`, true);
     $("start").disabled = false;
@@ -323,3 +328,32 @@ async function setupGoogle() {
 }
 
 setupGoogle();
+
+/* ---------- caption fallback ---------- */
+$("paste-toggle").addEventListener("click", () => {
+  $("paste-modal").hidden = false;
+  $("paste-text").focus();
+});
+
+$("paste-cancel").addEventListener("click", () => {
+  $("paste-modal").hidden = true;
+});
+
+$("paste-add").addEventListener("click", async () => {
+  const lines = $("paste-text")
+    .value.split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  for (const line of lines) {
+    const match = line.match(/^([^:]{1,40}):\s*(.+)$/);
+    const speaker = match ? match[1].trim() : "Participant";
+    const text = match ? match[2].trim() : line;
+    transcript.push(`${speaker}: ${text}`);
+    window.talksketch?.line({ speaker, text });
+    captured += 1;
+  }
+  $("captured").textContent = `${captured} lines captured`;
+  $("paste-text").value = "";
+  $("paste-modal").hidden = true;
+  await analyze(false);
+});

@@ -21,6 +21,7 @@
 
       <div class="actions">
         <div id="google-signin"></div>
+        <button id="paste-toggle" class="ghost">Paste</button>
         <button id="settings-toggle" class="ghost">Settings</button>
         <button id="start" class="primary">Start notes</button>
         <button id="stop" class="danger" hidden>Stop</button>
@@ -58,6 +59,21 @@
       <span id="status">Ready. Join a Meet, turn on captions, then start notes.</span>
       <span id="captured">0 lines captured</span>
     </footer>
+
+    <div class="modal" id="paste-modal" hidden>
+      <div class="modal-card">
+        <h3>Paste captions</h3>
+        <p class="modal-hint">
+          If Meet's captions aren't detected, paste lines as <b>Name: text</b>, one per line.
+          They are added to the transcript and analyzed.
+        </p>
+        <textarea id="paste-text" rows="9" placeholder="Sarah: Let's start with the budget.&#10;Tom: We're 12% over on travel."></textarea>
+        <div class="modal-actions">
+          <button id="paste-cancel" class="ghost" type="button">Cancel</button>
+          <button id="paste-add" class="primary" type="button">Add to transcript</button>
+        </div>
+      </div>
+    </div>
 
     <script src="app.js"></script>
   </body>

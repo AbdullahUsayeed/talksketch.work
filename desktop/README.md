@@ -12,12 +12,18 @@ cd panel && npm install && npm run build && cd ..
 npm start
 ```
 
-Build the portable Windows app:
+## Build the Windows installer
 
 ```bash
-npx esbuild main.js --bundle --platform=node --target=node20 --external:electron --format=cjs --outfile=main.bundle.js
-# copy main.bundle.js, preload.js, renderer/, panel-dist/, package.json into Electron's resources/app
+npm install
+cd panel && npm install && npm run build && cd ..
+npm run dist
+# dist/TalkSketch Setup 0.1.0.exe  (installer)
+# dist/TalkSketch 0.1.0.exe        (portable)
 ```
+
+electron-builder uses the locally installed Electron (`electronDist`), so it does not download
+it again. The installer is unsigned until a code-signing certificate is configured.
 
 ## Use
 

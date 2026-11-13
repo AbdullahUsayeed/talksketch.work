@@ -1,4 +1,5 @@
 :root { color-scheme: dark; }
+[hidden] { display: none !important; }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 body {
@@ -98,3 +99,11 @@ webview { width: 100%; height: 100%; display: flex; }
 .muted { color: #6b675c; font-size: 12.5px; }
 .board-pane img { width: 100%; border: 1px solid #ded6c5; border-radius: 10px; background: #fff; display: block; margin-bottom: 8px; }
 #claude { white-space: pre-wrap; font: 12px/1.55 ui-monospace, "Cascadia Code", Consolas, monospace; background: #f6f2e9; border: 1px solid #ded6c5; border-radius: 10px; padding: 12px; margin: 0; color: #2a2822; }
+
+/* fallback modal */
+.modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(0,0,0,.55); }
+.modal-card { width: min(620px, 92vw); background: #12161f; border: 1px solid #2a3240; border-radius: 14px; padding: 18px; }
+.modal-card h3 { margin: 0 0 6px; font-size: 16px; }
+.modal-hint { margin: 0 0 10px; color: #9aa4b2; font-size: 12.5px; }
+.modal-card textarea { width: 100%; background: #0b0e13; color: #e6edf3; border: 1px solid #2a3240; border-radius: 8px; padding: 10px; font: inherit; font-size: 12.5px; resize: vertical; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
