@@ -263,6 +263,7 @@ function reset() {
   seenNotes.clear();
   seenActions.clear();
   seenSuggestions.clear();
+  post("board", { clear: true });
   pushState();
 }
 

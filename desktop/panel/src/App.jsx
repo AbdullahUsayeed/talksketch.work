@@ -72,13 +72,20 @@ export default function App() {
           summary: data.summary ?? '',
         });
       }
-      if (data.type === 'board') applyBoard(data.ops);
+      if (data.type === 'board') {
+        if (data.clear) {
+          cursors.current = {};
+          api?.updateScene({ elements: [] });
+        } else {
+          applyBoard(data.ops);
+        }
+      }
       if (data.type === 'tab') setTab(data.tab);
     };
     window.addEventListener('message', onMessage);
     window.parent.postMessage({ source: 'talksketch-panel', type: 'ready' }, '*');
     return () => window.removeEventListener('message', onMessage);
-  }, [applyBoard]);
+  }, [applyBoard, api]);
 
   return (
     <div className="panel">
