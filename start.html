@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Start a pilot — TalkSketch</title>
+    <meta name="description" content="Install TalkSketch, enter your pilot key and get live notes in Google Meet." />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body>
+    <header class="nav">
+      <a class="brand" href="/"><img src="assets/logo.svg" alt="TalkSketch" width="160" height="40" /></a>
+      <div class="nav-cta">
+        <a class="ghost" href="/">← Back</a>
+        <a class="button small" href="https://54.255.181.218.sslip.io/download/TalkSketch-win32-x64.zip">Download</a>
+      </div>
+    </header>
+
+    <main class="legal">
+      <p class="kicker" style="margin-top:24px">Pilot</p>
+      <h1>Start in three minutes.</h1>
+      <p class="lede" style="color:var(--muted)">
+        The desktop preview joins Google Meet in its own window, reads the captions, and writes
+        live notes, action items and a whiteboard next to the call.
+      </p>
+
+      <div class="pilot-steps">
+        <article>
+          <span>01</span>
+          <h2>Install</h2>
+          <p>Download the Windows build, unzip it, and run <code>TalkSketch.exe</code>. SmartScreen will warn because the preview is not code-signed yet: <b>More info → Run anyway</b>.</p>
+          <a class="button" href="https://54.255.181.218.sslip.io/download/TalkSketch-win32-x64.zip">Download for Windows</a>
+        </article>
+
+        <article>
+          <span>02</span>
+          <h2>Get a key</h2>
+          <p>Pilot seats are issued manually so we can keep the model costs under control. Email us and we will send a key tied to your account.</p>
+          <a class="button outline" href="mailto:hello@talksketch.work?subject=TalkSketch%20pilot%20key">Request a pilot key</a>
+          <p class="fine" style="margin-top:10px">Public demo key: <code>TALKSKETCH</code> (rate-limited, shared).</p>
+        </article>
+
+        <article>
+          <span>03</span>
+          <h2>Run a meeting</h2>
+          <p>Open the app, paste your Meet link, join, turn on captions (CC), then press <b>Start notes</b>. Notes, actions and the board update in the right panel. Stop at the end to write the summary.</p>
+        </article>
+      </div>
+
+      <h2>What you need</h2>
+      <ul>
+        <li>Windows 10 or 11, x64.</li>
+        <li>A Google Meet call. Captions must be available and enabled.</li>
+        <li>Your pilot access key.</li>
+        <li>Consent from participants: tell them an AI assistant is taking notes.</li>
+      </ul>
+
+      <h2>What is still beta</h2>
+      <ul>
+        <li>Captions are read from Meet's page; Google can change it and break capture.</li>
+        <li>Chat send and spoken replies are best-effort.</li>
+        <li>One live meeting at a time on the pilot server.</li>
+        <li>No audio recording, no bot joining the call.</li>
+      </ul>
+
+      <p style="margin-top:28px">
+        Prefer to try without installing? <a href="https://54.255.181.218.sslip.io/">Use the transcript demo →</a>
+      </p>
+      <p class="fine">By using the pilot you agree to the <a href="/terms.html">Terms</a> and <a href="/privacy.html">Privacy Policy</a>.</p>
+    </main>
+
+    <style>
+      .pilot-steps { display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 26px 0 10px; }
+      .pilot-steps article { border: 1px solid var(--line); background: var(--white); border-radius: 16px; padding: 20px; }
+      .pilot-steps article > span { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; color: var(--coral); font-size: 13px; }
+      .pilot-steps h2 { font-size: 20px; margin: 6px 0 8px; }
+      .pilot-steps p { margin: 0 0 12px; }
+      .pilot-steps .button { font-size: 13px; padding: 9px 14px; }
+      .legal code { background: var(--paper-2); padding: 1px 5px; border-radius: 4px; }
+      @media (max-width: 820px) { .pilot-steps { grid-template-columns: 1fr; } }
+    </style>
+  </body>
+</html>
