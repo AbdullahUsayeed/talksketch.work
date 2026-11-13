@@ -277,15 +277,39 @@ function toBase64(buffer) {
   return btoa(binary);
 }
 
-function makeRecorder(stream, speaker) {
+/**
+ * MediaRecorder timeslices are not standalone files: only the first chunk has a
+ * WebM header, so providers reject later chunks with 400. Record one complete
+ * file per cycle instead: start -> stop after 12s -> transcribe -> start again.
+ */
+function startRecorder(stream, speaker) {
+  if (!capturing) return;
+  if (!stream.getAudioTracks().some((track) => track.readyState === "live")) return;
+
   const recorder = new MediaRecorder(stream, {
     mimeType: "audio/webm;codecs=opus",
     audioBitsPerSecond: 32000,
   });
+  const chunks = [];
+
   recorder.ondataavailable = (event) => {
-    if (event.data.size > 1200) void transcribe(event.data, speaker);
+    if (event.data.size > 0) chunks.push(event.data);
   };
-  return recorder;
+
+  let timer = null;
+  recorder.onstop = () => {
+    if (timer) clearTimeout(timer);
+    recorders = recorders.filter((item) => item !== recorder);
+    const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+    if (blob.size > 1200) void transcribe(blob, speaker);
+    if (capturing) startRecorder(stream, speaker);
+  };
+
+  recorders.push(recorder);
+  recorder.start();
+  timer = setTimeout(() => {
+    if (recorder.state === "recording") recorder.stop();
+  }, 12000);
 }
 
 async function transcribe(blob, speaker, attempt = 1) {
@@ -339,11 +363,9 @@ async function startAudio() {
   });
   const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
   audioTracks = [...display.getTracks(), ...mic.getTracks()];
-  recorders = [
-    makeRecorder(new MediaStream([system]), "Meeting"),
-    makeRecorder(mic, "You"),
-  ];
-  recorders.forEach((recorder) => recorder.start(12000));
+  recorders = [];
+  startRecorder(new MediaStream([system]), "Meeting");
+  startRecorder(mic, "You");
 }
 
 async function startCapture() {

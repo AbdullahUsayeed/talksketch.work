@@ -614,23 +614,28 @@ const server = createServer(async (req, res) => {
       await acquireSttSlot();
       try {
         const form = new FormData();
-        form.append(
-          'file',
-          new Blob([new Uint8Array(audio)], { type: body.mime || 'audio/webm' }),
-          'chunk.webm',
-        );
         const language = body.language && body.language !== 'auto' ? body.language : undefined;
+        const appendFile = (): void => {
+          form.append(
+            'file',
+            new Blob([new Uint8Array(audio)], { type: body.mime || 'audio/webm' }),
+            'chunk.webm',
+          );
+        };
 
         if (config.stt.provider === 'xai') {
           if (language) form.append('language', language);
+          appendFile();
           const response = await sttFetch(`${config.stt.baseUrl}/stt`, {
             method: 'POST',
             headers: { authorization: `Bearer ${config.stt.apiKey}` },
             body: form,
           });
           if (!response.ok) {
+            const detail = (await response.text().catch(() => '')).slice(0, 200);
+            logger.warn('stt provider error', { status: response.status, detail });
             return json(res, 502, {
-              error: `Transcription provider responded ${response.status}`,
+              error: `Transcription provider responded ${response.status}${detail ? `: ${detail}` : ''}`,
             });
           }
           const data = (await response.json()) as { text?: string; language?: string };
@@ -643,13 +648,18 @@ const server = createServer(async (req, res) => {
         form.append('model', config.stt.model);
         form.append('response_format', 'json');
         if (language) form.append('language', language);
+        appendFile();
         const response = await sttFetch(`${config.stt.baseUrl}/audio/transcriptions`, {
           method: 'POST',
           headers: { authorization: `Bearer ${config.stt.apiKey}` },
           body: form,
         });
         if (!response.ok) {
-          return json(res, 502, { error: `Transcription provider responded ${response.status}` });
+          const detail = (await response.text().catch(() => '')).slice(0, 200);
+          logger.warn('stt provider error', { status: response.status, detail });
+          return json(res, 502, {
+            error: `Transcription provider responded ${response.status}${detail ? `: ${detail}` : ''}`,
+          });
         }
         const data = (await response.json()) as { text?: string };
         return json(res, 200, { text: (data.text ?? '').trim() });
