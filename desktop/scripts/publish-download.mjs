@@ -78,7 +78,7 @@ const artifacts = [SETUP, PORTABLE]
   .map((name) => path.join(DESKTOP_DIR, 'dist', name))
   .filter((file) => {
     if (existsSync(file)) return true;
-    console.warn(`skip (not built): ${path.basename(file)}`);
+    console.log(`skip (not built): ${path.basename(file)}`);
     return false;
   });
 
@@ -104,6 +104,7 @@ for (const file of artifacts) {
   ssh(
     `sudo install -o www-data -g www-data -m 644 /tmp/${name} ${REMOTE_DIR}/${name} && ` +
       `printf '%s  %s\\n' '${hashes[name]}' '${name}' | sudo tee ${REMOTE_DIR}/${name}.sha256 >/dev/null && ` +
+      `sudo chown www-data:www-data ${REMOTE_DIR}/${name}.sha256 && ` +
       `rm -f /tmp/${name}`,
   );
 }
