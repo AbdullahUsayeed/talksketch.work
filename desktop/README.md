@@ -78,19 +78,20 @@ NSIS GUID is pinned so upgrades replace the previous install instead of stacking
 
 ### Signing
 
-`signAndEditExecutable` is `false` by default because enabling it makes electron-builder fetch
-`winCodeSign`, whose archive contains macOS symlinks that Windows only extracts with Developer
-Mode or an elevated shell. When you have a certificate, use:
+Signing runs through `signtool` in `desktop/scripts/` (see [SIGNING.md](SIGNING.md)). It does not
+need admin rights and does not download `winCodeSign`:
 
 ```powershell
-$env:CSC_LINK = "C:\path\to\cert.pfx"
-$env:CSC_KEY_PASSWORD = "..."
-npm run dist:signed
+$env:TS_CSC_LINK = "C:\certs\talksketch.pfx"
+$env:TS_CSC_PASSWORD = "..."
+npm run dist
 ```
 
-For Azure Trusted Signing, add `win.azureSignOptions` (`endpoint`,
-`certificateProfileName`, `codeSigningAccountName`) to `package.json` and run `dist:signed`.
-Unsigned builds still install; Windows SmartScreen just warns first.
+`afterPack` signs `TalkSketch.exe` before it is packed; `afterAllArtifactBuild` signs the
+installer and portable build. With no certificate configured the build still succeeds and the
+artifacts are simply unsigned. A **trusted** signature needs a CA-issued certificate — free
+options for open-source projects, and the verification steps, are in
+[`SIGNING.md`](SIGNING.md).
 
 ### Publish
 

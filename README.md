@@ -41,7 +41,8 @@ self-hosted with your own model key.
 
 The installer is currently unsigned, so Windows SmartScreen warns on first run. That is why
 winget is the recommended path: it downloads the same build without the browser warning.
-See `winget/README.md` for the package manifest and release flow.
+Signing requires a CA-issued certificate (free routes exist for open-source projects); see
+`desktop/SIGNING.md`. The package manifest and release flow are in `winget/README.md`.
 
 ## Download host
 

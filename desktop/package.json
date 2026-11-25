@@ -9,7 +9,6 @@
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win nsis portable",
-    "dist:signed": "electron-builder --win nsis portable -c.win.signAndEditExecutable=true",
     "dir": "electron-builder --win --dir",
     "publish:download": "node scripts/publish-download.mjs"
   },
@@ -55,6 +54,8 @@
     "portable": {
       "artifactName": "TalkSketch-Portable-${version}.${ext}"
     },
+    "afterPack": "./scripts/after-pack.js",
+    "afterAllArtifactBuild": "./scripts/after-all-artifact-build.js",
     "publish": [
       {
         "provider": "generic",

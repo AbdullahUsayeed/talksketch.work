@@ -64,6 +64,19 @@ function ssh(script) {
   ]);
 }
 
+/** Authenticode status of a PE, e.g. Valid / NotSigned / UnknownError. */
+function signatureStatus(file) {
+  if (process.platform !== 'win32') return 'unknown';
+  const script = `(Get-AuthenticodeSignature -LiteralPath '${file.replace(/'/g, "''")}').Status.ToString()`;
+  try {
+    return execFileSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], {
+      encoding: 'utf8',
+    }).trim();
+  } catch {
+    return 'unknown';
+  }
+}
+
 function scp(file) {
   return run('scp', [
     '-i', KEY,
@@ -95,6 +108,17 @@ if (!existsSync(KEY) && !DRY) {
 const hashes = {};
 for (const file of artifacts) {
   hashes[path.basename(file)] = await sha256(file);
+}
+
+const setupPath = path.join(DESKTOP_DIR, 'dist', SETUP);
+if (existsSync(setupPath)) {
+  const status = signatureStatus(setupPath);
+  console.log(`\nsignature (${SETUP}): ${status}`);
+  if (process.env.TS_REQUIRE_SIGNATURE === '1' && status !== 'Valid') {
+    console.error('Refusing to publish: installer is not validly signed and TS_REQUIRE_SIGNATURE=1.');
+    console.error('See desktop/SIGNING.md. Unset TS_REQUIRE_SIGNATURE to publish anyway.');
+    process.exit(1);
+  }
 }
 
 for (const file of artifacts) {
