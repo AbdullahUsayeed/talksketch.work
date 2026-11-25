@@ -68,12 +68,41 @@ nothing that was already transcribed.
 npm install
 cd panel && npm install && npm run build && cd ..
 npm run dist
-# dist/TalkSketch Setup 0.1.0.exe  (installer)
-# dist/TalkSketch 0.1.0.exe        (portable)
+# dist/TalkSketch-Setup-0.1.0.exe     (installer, per-user NSIS)
+# dist/TalkSketch-Portable-0.1.0.exe  (portable)
 ```
 
 electron-builder uses the locally installed Electron (`electronDist`), so it does not download
-it again. The installer is unsigned until a code-signing certificate is configured.
+it again. The installer is unsigned until a code-signing certificate is configured, and the
+NSIS GUID is pinned so upgrades replace the previous install instead of stacking.
+
+### Signing
+
+`signAndEditExecutable` is `false` by default because enabling it makes electron-builder fetch
+`winCodeSign`, whose archive contains macOS symlinks that Windows only extracts with Developer
+Mode or an elevated shell. When you have a certificate, use:
+
+```powershell
+$env:CSC_LINK = "C:\path\to\cert.pfx"
+$env:CSC_KEY_PASSWORD = "..."
+npm run dist:signed
+```
+
+For Azure Trusted Signing, add `win.azureSignOptions` (`endpoint`,
+`certificateProfileName`, `codeSigningAccountName`) to `package.json` and run `dist:signed`.
+Unsigned builds still install; Windows SmartScreen just warns first.
+
+### Publish
+
+```bash
+npm run publish:download
+```
+
+Uploads `dist/TalkSketch-Setup-<version>.exe` and the portable build to
+`/var/www/talksketch-downloads/` on the cloud host, writes `.sha256` sidecars, then atomically
+repoints `TalkSketch-Setup.exe` at the new version. Set `TS_SSH_KEY` if your key is not at
+`~/.ssh/id_ed25519_lightsail`. The site and the `latest` URL use the alias; the winget manifest
+uses the immutable versioned file.
 
 ## Use
 

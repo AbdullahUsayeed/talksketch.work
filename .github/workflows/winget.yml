@@ -1,0 +1,48 @@
+name: Publish to winget
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to publish (must match the installer filename)
+        required: true
+        type: string
+      installer_url:
+        description: Versioned installer URL on api.talksketch.work
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: windows-latest
+    steps:
+      - name: Check secret
+        env:
+          TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          if (-not $env:TOKEN) {
+            throw "Missing WINGET_TOKEN secret. Create a classic PAT with public_repo scope."
+          }
+
+      - name: Install wingetcreate
+        run: |
+          Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          .\wingetcreate.exe --version
+
+      - name: Verify installer is reachable
+        env:
+          URL: ${{ inputs.installer_url }}
+        run: |
+          $head = Invoke-WebRequest -Uri $env:URL -Method Head -UseBasicParsing
+          "status=$($head.StatusCode) bytes=$($head.Headers['Content-Length'])"
+
+      - name: Submit manifest update
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+          VERSION: ${{ inputs.version }}
+          URL: ${{ inputs.installer_url }}
+        run: |
+          .\wingetcreate.exe update TalkSketch.TalkSketch -v $env:VERSION -u $env:URL -s -t $env:WINGET_TOKEN

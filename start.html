@@ -16,7 +16,7 @@
       <a class="brand" href="/"><img src="assets/logo.svg" alt="TalkSketch" width="160" height="40" /></a>
       <div class="nav-cta">
         <a class="ghost" href="/">← Back</a>
-        <a class="button small" href="https://api.talksketch.work/download/TalkSketch-Setup-0.1.0.exe">Download</a>
+        <a class="button small" href="https://api.talksketch.work/download/latest/TalkSketch-Setup.exe">Download</a>
       </div>
     </header>
 
@@ -29,11 +29,14 @@
       </p>
 
       <div class="pilot-steps">
-        <article>
+        <article id="install">
           <span>01</span>
           <h2>Install</h2>
-          <p>Download the Windows installer, run it, and launch <b>TalkSketch</b>. SmartScreen will warn because the preview is not code-signed yet: <b>More info → Run anyway</b>. It installs per user, no admin required.</p>
-          <a class="button" href="https://api.talksketch.work/download/TalkSketch-Setup-0.1.0.exe">Download for Windows</a>
+          <p>The quickest route is winget — no browser download warning:</p>
+          <button class="cmd full" type="button" data-copy="winget install --id TalkSketch.TalkSketch -e" data-copied="Copied" data-winget>
+            <span class="cmd-prompt">&gt;</span> winget install --id TalkSketch.TalkSketch -e
+          </button>
+          <p style="margin-top:12px">Or <a href="https://api.talksketch.work/download/latest/TalkSketch-Setup.exe">download the installer</a> and run it. SmartScreen will warn because the preview is not code-signed yet: <b>More info → Run anyway</b>. It installs per user, no admin required.</p>
         </article>
 
         <article>
@@ -49,6 +52,16 @@
           <p>Play the meeting in any app, press <b>Start notes</b>, allow screen/audio sharing and tick <b>Share system audio</b>. Chunks are cut at pauses, notes update about once a minute, and <b>Stop</b> writes the final notes.</p>
         </article>
       </div>
+
+      <h2 id="troubleshooting">If the installer will not run</h2>
+      <p>Windows trusts this preview less than it trusts a signed app. Try these in order.</p>
+      <ol>
+        <li><b>Install with winget.</b> <code>winget install --id TalkSketch.TalkSketch -e</code> fetches the same build without the browser download warning.</li>
+        <li><b>&ldquo;Windows protected your PC&rdquo;.</b> Click <b>More info</b>, then <b>Run anyway</b>. The Run button only appears after that panel expands.</li>
+        <li><b>Double-clicking does nothing.</b> The file is blocked by the download mark. In PowerShell, from your Downloads folder, run <code>Unblock-File .\TalkSketch-Setup.exe</code>, then start it again.</li>
+        <li><b>Smart App Control blocked it.</b> Windows 11 with <b>Smart App Control</b> turned on refuses unsigned apps with no bypass. It lives under Windows Security &rarr; App &amp; browser control; turning it off is permanent unless Windows is reset, so only do that if you understand the trade-off.</li>
+      </ol>
+      <p class="fine">Still stuck? Send the output of <code>winget install --id TalkSketch.TalkSketch -e --verbose-logs</code> to <a href="mailto:hello@talksketch.work">hello@talksketch.work</a>.</p>
 
       <h2>What you need</h2>
       <ul>
@@ -71,7 +84,7 @@
       </p>
       <p class="fine">By using the pilot you agree to the <a href="/terms.html">Terms</a> and <a href="/privacy.html">Privacy Policy</a>.</p>
     </main>
-
+    <script src="assets/copy.js" defer></script>
     <style>
       .pilot-steps { display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 26px 0 10px; }
       .pilot-steps article { border: 1px solid var(--line); background: var(--white); border-radius: 16px; padding: 20px; }

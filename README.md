@@ -34,9 +34,38 @@ self-hosted with your own model key.
 
 ## Download
 
-- Windows installer (~86 MB):
+- **winget (recommended):** `winget install --id TalkSketch.TalkSketch -e`
+- Floating installer link (~86 MB): <https://api.talksketch.work/download/latest/TalkSketch-Setup.exe>
+- Versioned installer (what the winget manifest pins):
   <https://api.talksketch.work/download/TalkSketch-Setup-0.1.0.exe>
-- The installer is currently unsigned, so Windows SmartScreen warns on first run.
+
+The installer is currently unsigned, so Windows SmartScreen warns on first run. That is why
+winget is the recommended path: it downloads the same build without the browser warning.
+See `winget/README.md` for the package manifest and release flow.
+
+## Download host
+
+Installers and `latest` live on the Lightsail box behind nginx:
+
+```
+/var/www/talksketch-downloads/
+  TalkSketch-Setup-0.1.0.exe     versioned, immutable (winget pins the SHA256)
+  TalkSketch-Setup.exe           symlink -> current version, used by the site
+  TalkSketch-Portable-0.1.0.exe
+  TalkSketch-win32-x64.zip
+```
+
+Publish a new build with:
+
+```bash
+cd desktop
+npm run dist
+npm run publish:download        # scp + atomic symlink swap
+```
+
+The script needs `TS_SSH_KEY` (defaults to `~/.ssh/id_ed25519_lightsail`) and the
+server must keep `location /download/` in `sites-available/talksketch-api`
+(the copy lives in `platform/deploy/nginx-talksketch-downloads.conf`).
 
 ## Billing
 
@@ -67,6 +96,7 @@ assets/logo.svg       wordmark
 assets/og.svg         social card
 desktop/              Electron app (capture, cloud transcription, Excalidraw)
 platform/             self-hostable backend (auth, trials, billing, AI call)
+winget/               Windows Package Manager manifest (TalkSketch.TalkSketch)
 ```
 
 Everything here is Apache-2.0. Build the app from `desktop/` and the backend from

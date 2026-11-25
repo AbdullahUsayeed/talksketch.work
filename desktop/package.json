@@ -9,7 +9,9 @@
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win nsis portable",
-    "dir": "electron-builder --win --dir"
+    "dist:signed": "electron-builder --win nsis portable -c.win.signAndEditExecutable=true",
+    "dir": "electron-builder --win --dir",
+    "publish:download": "node scripts/publish-download.mjs"
   },
   "devDependencies": {
     "electron": "^33.4.11",
@@ -35,13 +37,31 @@
         "portable"
       ],
       "icon": "build/icon.ico",
-      "signAndEditExecutable": false
+      "signAndEditExecutable": false,
+      "signtoolOptions": {
+        "publisherName": "TalkSketch"
+      }
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
       "allowToChangeInstallationDirectory": true,
-      "shortcutName": "TalkSketch"
+      "shortcutName": "TalkSketch",
+      "guid": "647aea2a-77c5-5119-9e35-4e7dcbf79a20",
+      "artifactName": "TalkSketch-Setup-${version}.${ext}",
+      "differentialPackage": true
     },
+    "portable": {
+      "artifactName": "TalkSketch-Portable-${version}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://api.talksketch.work/download/",
+        "channel": "latest"
+      }
+    ],
     "electronDist": "node_modules/electron/dist"
   },
   "allowScripts": {
