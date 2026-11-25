@@ -525,7 +525,7 @@ h1, h2, h3 {
 
 /* install alternatives */
 .install-note { margin: 14px 0 0; max-width: 48ch; font-size: 13px; line-height: 1.5; color: var(--muted); }
-.install-note a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.install-note a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
 .install-note a:hover { color: var(--coral-dark); }
 .cmd {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
