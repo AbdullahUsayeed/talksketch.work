@@ -137,8 +137,9 @@ for (const file of artifacts) {
 console.log(`\n-> ${LATEST} -> ${SETUP}`);
 ssh(
   `sudo ln -sfn ${SETUP} ${REMOTE_DIR}/${LATEST} && ` +
-    `sudo chown -h www-data:www-data ${REMOTE_DIR}/${LATEST} && ` +
-    `ls -l ${REMOTE_DIR}/${LATEST}`,
+    `sudo ln -sfn ${SETUP}.sha256 ${REMOTE_DIR}/${LATEST}.sha256 && ` +
+    `sudo chown -h www-data:www-data ${REMOTE_DIR}/${LATEST} ${REMOTE_DIR}/${LATEST}.sha256 && ` +
+    `ls -l ${REMOTE_DIR}/${LATEST} ${REMOTE_DIR}/${LATEST}.sha256`,
 );
 
 console.log('\nPublished:');
